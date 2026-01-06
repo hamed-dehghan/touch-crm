@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { getUsers, createUser, updateUser, deleteUser } from '';
-import { authenticate } from '';
-import { requirePermission } from '';
+import { getUsers, createUser, updateUser, deleteUser } from '../controllers/user.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { requirePermission } from '../middlewares/rbac.middleware';
 
 const router = Router();
 

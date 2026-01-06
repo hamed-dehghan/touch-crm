@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import Campaign, { CampaignStatus } from '';
-import { NotFoundError, ValidationError } from '';
-import { executeCampaign } from '';
+import Campaign, { CampaignStatus } from '../models/Campaign';
+import { NotFoundError, ValidationError } from '../utils/errors';
+import { executeCampaign } from '../services/campaign.service';
 import User from '../models/User';
 
 /**
@@ -61,7 +61,7 @@ export const createCampaign = async (
       name,
       messageTemplate,
       filterConditionsJson: filterConditionsJson || '{}',
-      scheduledSendTime: scheduledSendTime ? new Date(scheduledSendTime) : null,
+      scheduledSendTime: scheduledSendTime ? new Date(scheduledSendTime) : undefined,
       status: CampaignStatus.DRAFT,
       createdByUserId: userId || 1,
     });
@@ -90,7 +90,7 @@ export const createCampaign = async (
  *         description: List of campaigns
  */
 export const getCampaigns = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

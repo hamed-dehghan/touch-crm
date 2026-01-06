@@ -1,10 +1,21 @@
 import { Op } from 'sequelize';
-import Campaign, { CampaignStatus } from '';
+import Campaign, { CampaignStatus } from '../models/Campaign';
 import Customer from '../models/Customer';
 import CustomerLevel from '../models/CustomerLevel';
-import MessageQueue, { MessageStatus } from '';
+import MessageQueue, { MessageStatus } from '../models/MessageQueue';
 import Order from '../models/Order';
-import sequelize from '../config/database';
+
+/**
+ * Campaign Service
+ * 
+ * Handles SMS/marketing campaign execution with dynamic customer filtering.
+ * Supports targeting customers by:
+ * - Customer level/tier
+ * - Last purchase date
+ * - Customer status
+ * 
+ * Messages are queued for batch processing to avoid overwhelming SMS provider.
+ */
 
 interface FilterConditions {
   level?: string;
@@ -84,8 +95,8 @@ const renderMessageTemplate = (template: string, customer: Customer): string => 
   message = message.replace(/\[Email\]/g, customer.email || '');
 
   // Get customer level name if available
-  if (customer.customerLevel) {
-    message = message.replace(/\[Level\]/g, customer.customerLevel.levelName);
+  if ((customer as any).customerLevel) {
+    message = message.replace(/\[Level\]/g, (customer as any).customerLevel.levelName);
   }
 
   return message;

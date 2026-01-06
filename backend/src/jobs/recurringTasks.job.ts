@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { processRecurringTasks } from '';
+import { processRecurringTasks } from '../services/recurringTasks.service';
 
 /**
  * Recurring Tasks Job

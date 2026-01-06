@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import Promotion, { RewardType } from '';
-import { NotFoundError, ValidationError } from '';
-import { evaluatePromotionConditions } from '';
+import Promotion, { RewardType } from '../models/Promotion';
+import { NotFoundError, ValidationError } from '../utils/errors';
 import CustomerPromotion from '../models/CustomerPromotion';
 
 /**
@@ -96,7 +95,7 @@ export const createPromotion = async (
  *         description: List of promotions
  */
 export const getPromotions = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

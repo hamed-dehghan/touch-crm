@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import Task, { TaskStatus } from '';
+import Task, { TaskStatus } from '../models/Task';
 import Project from '../models/Project';
 import User from '../models/User';
-import { NotFoundError, ValidationError } from '';
+import { NotFoundError, ValidationError } from '../utils/errors';
 
 /**
  * @swagger
@@ -82,11 +82,11 @@ export const createTask = async (
       projectId,
       assignedToUserId,
       createdByUserId: userId || 1,
-      dueDate: dueDate ? new Date(dueDate) : null,
+      dueDate: dueDate ? new Date(dueDate) : undefined,
       status: TaskStatus.PENDING,
       isRecurring: isRecurring || false,
       recurringIntervalDays,
-      lastTriggeredAt: isRecurring ? new Date() : null,
+      lastTriggeredAt: isRecurring ? new Date() : undefined,
     });
 
     const createdTask = await Task.findByPk(task.id, {

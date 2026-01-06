@@ -5,11 +5,11 @@ import {
   getCustomerById,
   updateCustomer,
   deleteCustomer,
-} from '';
-import { getCustomerWorkLogs } from '';
-import { getCustomerTransactions } from '';
-import { authenticate } from '';
-import { requirePermission, requireAnyPermission } from '';
+} from '../controllers/customer.controller';
+import { getCustomerWorkLogs } from '../controllers/worklog.controller';
+import { getCustomerTransactions } from '../controllers/transaction.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { requirePermission, requireAnyPermission } from '../middlewares/rbac.middleware';
 
 const router = Router();
 

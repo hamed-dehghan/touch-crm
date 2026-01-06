@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import Product from '../models/Product';
-import { NotFoundError } from '';
-import { createProductSchema, updateProductSchema } from '';
+import { NotFoundError } from '../utils/errors';
+import { createProductSchema, updateProductSchema } from '../validations/product.validation';
 
 /**
  * @swagger
@@ -65,7 +65,7 @@ export const createProduct = async (
  *         description: List of products
  */
 export const getProducts = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

@@ -1,6 +1,5 @@
 import { Op } from 'sequelize';
-import Task, { TaskStatus } from '';
-import sequelize from '../config/database';
+import Task, { TaskStatus } from '../models/Task';
 
 /**
  * Process recurring tasks - duplicate tasks when interval has passed
@@ -37,13 +36,13 @@ export const processRecurringTasks = async (): Promise<{
       // Check if it's time to create a new task
       if (now >= nextTriggerDate) {
         // Create duplicate task
-        const newTask = await Task.create({
+        await Task.create({
           title: task.title,
           description: task.description,
           projectId: task.projectId,
           assignedToUserId: task.assignedToUserId,
           createdByUserId: task.createdByUserId,
-          dueDate: task.dueDate ? new Date(task.dueDate) : null,
+          dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
           status: TaskStatus.PENDING,
           isRecurring: true,
           recurringIntervalDays: task.recurringIntervalDays,

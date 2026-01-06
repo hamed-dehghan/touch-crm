@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { ForbiddenError } from '';
-import { Permission, RolePermission } from '';
+import { ForbiddenError } from '../utils/errors';
+import Permission from '../models/Permission';
+import RolePermission from '../models/RolePermission';
 
 /**
  * Middleware to check if the authenticated user has a specific permission
@@ -8,7 +9,7 @@ import { Permission, RolePermission } from '';
  * @returns Express middleware function
  */
 export const requirePermission = (actionCode: string) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.user) {
         throw new ForbiddenError('Authentication required');
@@ -54,7 +55,7 @@ export const requirePermission = (actionCode: string) => {
  * @returns Express middleware function
  */
 export const requireAnyPermission = (actionCodes: string[]) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.user) {
         throw new ForbiddenError('Authentication required');
@@ -74,7 +75,7 @@ export const requireAnyPermission = (actionCodes: string[]) => {
       }
 
       // Check if user has at least one of the permissions
-      const permissionIds = permissions.map((p) => p.id);
+      const permissionIds = permissions.map((p: any) => p.id);
       const hasPermission = await RolePermission.findOne({
         where: {
           roleId,
@@ -87,7 +88,7 @@ export const requireAnyPermission = (actionCodes: string[]) => {
       }
 
       // For _own permissions, store userId for later filtering
-      const matchedPermission = permissions.find((p) => hasPermission.permissionId === p.id);
+      const matchedPermission = permissions.find((p: any) => hasPermission.permissionId === p.id);
       if (matchedPermission?.actionCode.includes('_own')) {
         req.user.userId = userId;
       }

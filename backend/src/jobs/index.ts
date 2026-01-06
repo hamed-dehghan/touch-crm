@@ -1,7 +1,7 @@
-import { startRFMJob } from '';
-import { startBirthdayMessagesJob, startInactivityMessagesJob } from '';
-import { startRecurringTasksJob } from '';
-import { startMessageWorker } from '';
+import { startRFMJob } from './rfm.job';
+import { startBirthdayMessagesJob, startInactivityMessagesJob } from './automatedMessages.job';
+import { startRecurringTasksJob } from './recurringTasks.job';
+import { startMessageWorker } from '../workers/messageWorker';
 
 /**
  * Initialize all background jobs

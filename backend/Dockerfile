@@ -19,7 +19,7 @@ COPY src ./src
 RUN npm run build
 
 # Stage 2: Production
-FROM node:18-alpine
+FROM docker.arvancloud.ir/node:18-alpine
 
 WORKDIR /app
 

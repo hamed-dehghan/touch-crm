@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { login, register, getCurrentUser } from '';
-import { authenticate } from '';
-import { requirePermission } from '';
+import { login, register, getCurrentUser } from '../controllers/auth.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { requirePermission } from '../middlewares/rbac.middleware';
 
 const router = Router();
 

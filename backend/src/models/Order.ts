@@ -15,7 +15,7 @@ interface OrderAttributes {
 }
 
 interface OrderCreationAttributes
-  extends Optional<OrderAttributes, 'id' | 'orderDate' | 'discountAmount' | 'taxAmount' | 'createdAt' | 'updatedAt'> {}
+  extends Optional<OrderAttributes, 'id' | 'orderDate' | 'discountAmount' | 'taxAmount' | 'finalAmount' | 'createdByUserId' | 'createdAt' | 'updatedAt'> {}
 
 class Order extends Model<OrderAttributes, OrderCreationAttributes> implements OrderAttributes {
   public id!: number;

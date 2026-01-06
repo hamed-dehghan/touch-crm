@@ -5,8 +5,8 @@ import {
   getProductById,
   updateProduct,
   deleteProduct,
-} from '';
-import { authenticate } from '';
+} from '../controllers/product.controller';
+import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
 

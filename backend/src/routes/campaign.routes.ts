@@ -5,9 +5,9 @@ import {
   getCampaignById,
   updateCampaign,
   executeCampaignEndpoint,
-} from '';
-import { authenticate } from '';
-import { requirePermission } from '';
+} from '../controllers/campaign.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { requirePermission } from '../middlewares/rbac.middleware';
 
 const router = Router();
 

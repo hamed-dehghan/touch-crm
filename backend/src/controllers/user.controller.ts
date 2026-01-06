@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
 import Role from '../models/Role';
-import { NotFoundError, ValidationError } from '';
-import { hashPassword } from '';
-import { registerSchema } from '';
+import { NotFoundError, ValidationError } from '../utils/errors';
+import { hashPassword } from '../utils/password';
+import { registerSchema } from '../validations/auth.validation';
 
 /**
  * @swagger
@@ -18,7 +18,7 @@ import { registerSchema } from '';
  *         description: List of users
  */
 export const getUsers = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

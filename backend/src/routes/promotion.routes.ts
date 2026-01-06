@@ -6,9 +6,9 @@ import {
   updatePromotion,
   deletePromotion,
   assignPromotionToCustomer,
-} from '';
-import { authenticate } from '';
-import { requirePermission } from '';
+} from '../controllers/promotion.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { requirePermission } from '../middlewares/rbac.middleware';
 
 const router = Router();
 

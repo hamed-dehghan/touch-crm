@@ -12,7 +12,7 @@ interface OrderItemAttributes {
 }
 
 interface OrderItemCreationAttributes
-  extends Optional<OrderItemAttributes, 'id' | 'quantity' | 'createdAt' | 'updatedAt'> {}
+  extends Optional<OrderItemAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
 
 class OrderItem
   extends Model<OrderItemAttributes, OrderItemCreationAttributes>

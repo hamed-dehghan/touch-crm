@@ -1,12 +1,12 @@
 import * as yup from 'yup';
-import { PaymentMethod } from '';
+import { PaymentMethod } from '../models/Transaction';
 
 export const createTransactionSchema = yup.object({
   customerId: yup.number().required('Customer ID is required').positive().integer(),
   orderId: yup.number().nullable().positive().integer(),
   paymentMethod: yup
     .string()
-    .oneOf(Object.values(PaymentMethod), 'Invalid payment method')
+    .oneOf(Object.values(PaymentMethod) as string[], 'Invalid payment method')
     .required('Payment method is required'),
   amount: yup
     .number()

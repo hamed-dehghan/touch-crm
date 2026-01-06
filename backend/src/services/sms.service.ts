@@ -31,13 +31,11 @@ export class MockSMSProvider implements SMSProvider {
  * Kavenegar SMS Provider (Iranian SMS service)
  */
 export class KavenegarSMSProvider implements SMSProvider {
-  private apiKey: string;
-
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
+  constructor(_apiKey: string) {
+    // Store if needed for actual API implementation
   }
 
-  async sendSMS(phoneNumber: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  async sendSMS(phoneNumber: string, _message: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
       // TODO: Implement actual Kavenegar API integration
       // const response = await fetch(`https://api.kavenegar.com/v1/${this.apiKey}/sms/send.json`, {
@@ -59,17 +57,11 @@ export class KavenegarSMSProvider implements SMSProvider {
  * Twilio SMS Provider
  */
 export class TwilioSMSProvider implements SMSProvider {
-  private accountSid: string;
-  private authToken: string;
-  private fromNumber: string;
-
-  constructor(accountSid: string, authToken: string, fromNumber: string) {
-    this.accountSid = accountSid;
-    this.authToken = authToken;
-    this.fromNumber = fromNumber;
+  constructor(_accountSid: string, _authToken: string, _fromNumber: string) {
+    // Store if needed for actual API implementation
   }
 
-  async sendSMS(phoneNumber: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  async sendSMS(phoneNumber: string, _message: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
       // TODO: Implement actual Twilio API integration
       // const response = await twilioClient.messages.create({

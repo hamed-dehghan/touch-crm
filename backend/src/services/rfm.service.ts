@@ -2,8 +2,7 @@ import { Op } from 'sequelize';
 import Customer from '../models/Customer';
 import CustomerLevel from '../models/CustomerLevel';
 import Order from '../models/Order';
-import { checkPromotionsAfterLevelChange } from '';
-import sequelize from '../config/database';
+import { checkPromotionsAfterLevelChange } from '../services/promotionEvents.service';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -129,7 +128,7 @@ export const updateCustomerLevel = async (customerId: number, averageScore: numb
 
     // Check for promotions if level changed
     if (oldLevelId !== customerLevel.id) {
-      checkPromotionsAfterLevelChange(customerId).catch((error) => {
+      checkPromotionsAfterLevelChange(customerId).catch((error: unknown) => {
         console.error(`Error checking promotions after level change for customer ${customerId}:`, error);
       });
     }

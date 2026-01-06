@@ -2,10 +2,9 @@ import { Router } from 'express';
 import {
   createWorkLog,
   getWorkLogs,
-  getCustomerWorkLogs,
-} from '';
-import { authenticate } from '';
-import { requireAnyPermission, requirePermission } from '';
+} from '../controllers/worklog.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { requireAnyPermission, requirePermission } from '../middlewares/rbac.middleware';
 
 const router = Router();
 

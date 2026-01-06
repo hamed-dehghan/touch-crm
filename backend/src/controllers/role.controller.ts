@@ -3,7 +3,7 @@ import Role from '../models/Role';
 import Permission from '../models/Permission';
 import RolePermission from '../models/RolePermission';
 import User from '../models/User';
-import { NotFoundError, ValidationError } from '';
+import { NotFoundError, ValidationError } from '../utils/errors';
 
 /**
  * @swagger
@@ -18,7 +18,7 @@ import { NotFoundError, ValidationError } from '';
  *         description: List of roles
  */
 export const getRoles = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -35,7 +35,7 @@ export const getRoles = async (
       order: [['createdAt', 'ASC']],
     });
 
-    const rolesWithCount = roles.map((role) => ({
+    const rolesWithCount = roles.map((role: any) => ({
       id: role.id,
       roleName: role.roleName,
       description: role.description,
@@ -257,7 +257,7 @@ export const deleteRole = async (
     }
 
     // Check if any users are assigned to this role
-    if (role.users && role.users.length > 0) {
+    if ((role as any).users && (role as any).users.length > 0) {
       throw new ValidationError('Cannot delete role with assigned users');
     }
 
@@ -285,7 +285,7 @@ export const deleteRole = async (
  *         description: List of permissions
  */
 export const getPermissions = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

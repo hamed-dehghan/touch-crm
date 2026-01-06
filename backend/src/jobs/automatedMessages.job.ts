@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { sendBirthdayMessages, sendInactivityMessages } from '';
+import { sendBirthdayMessages, sendInactivityMessages } from '../services/automatedMessages.service';
 
 /**
  * Birthday Messages Job

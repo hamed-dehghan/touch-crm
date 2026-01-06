@@ -1,7 +1,7 @@
 import { Op } from 'sequelize';
 import sequelize from '../config/database';
 import Customer from '../models/Customer';
-import MessageQueue, { MessageStatus } from '';
+import MessageQueue, { MessageStatus } from '../models/MessageQueue';
 import Order from '../models/Order';
 import CustomerLevel from '../models/CustomerLevel';
 
@@ -16,12 +16,10 @@ export const sendBirthdayMessages = async (): Promise<number> => {
   // Find customers with birthday today
   const customers = await Customer.findAll({
     where: {
-      birthDate: {
-        [Op.and]: [
-          sequelize.where(sequelize.fn('EXTRACT', sequelize.literal('MONTH FROM birth_date')), month),
-          sequelize.where(sequelize.fn('EXTRACT', sequelize.literal('DAY FROM birth_date')), day),
-        ],
-      },
+      [Op.and]: [
+        sequelize.where(sequelize.fn('EXTRACT', sequelize.literal('MONTH FROM birth_date')), month),
+        sequelize.where(sequelize.fn('EXTRACT', sequelize.literal('DAY FROM birth_date')), day),
+      ],
     },
     include: [
       {
@@ -39,7 +37,7 @@ export const sendBirthdayMessages = async (): Promise<number> => {
 
   const messageTemplate = '🎉 Happy Birthday [FirstName]! We wish you a wonderful day filled with joy. Thank you for being a valued [Level] member!';
 
-  const messages = customers.map((customer) => {
+  const messages = customers.map((customer: any) => {
     let message = messageTemplate;
     message = message.replace(/\[FirstName\]/g, customer.firstName || 'Valued Customer');
     message = message.replace(/\[Level\]/g, customer.customerLevel?.levelName || 'member');
@@ -141,7 +139,7 @@ export const sendWelcomeMessage = async (customerId: number): Promise<void> => {
 
   let message = messageTemplate;
   message = message.replace(/\[FirstName\]/g, customer.firstName || 'Valued Customer');
-  message = message.replace(/\[Level\]/g, customer.customerLevel?.levelName || 'valued');
+  message = message.replace(/\[Level\]/g, (customer as any).customerLevel?.levelName || 'valued');
 
   await MessageQueue.create({
     customerId: customer.id,

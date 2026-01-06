@@ -8,10 +8,9 @@ import {
   getPermissions,
   assignPermissions,
   removePermission,
-} from '';
-import { authenticate } from '';
-import { requirePermission } from '';
-import User from '../models/User';
+} from '../controllers/role.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { requirePermission } from '../middlewares/rbac.middleware';
 
 const router = Router();
 

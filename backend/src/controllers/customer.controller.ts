@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { Op } from 'sequelize';
-import Customer, { CustomerStatus } from '';
+import Customer, { CustomerStatus } from '../models/Customer';
 import CustomerLevel from '../models/CustomerLevel';
-import { NotFoundError, ValidationError, ForbiddenError } from '';
-import { createCustomerSchema, updateCustomerSchema } from '';
-import { checkPromotionsForReferral, checkPromotionsAfterLevelChange } from '';
-import { sendWelcomeMessage } from '';
+import { NotFoundError, ValidationError } from '../utils/errors';
+import { createCustomerSchema, updateCustomerSchema } from '../validations/customer.validation';
+import { checkPromotionsForReferral, checkPromotionsAfterLevelChange } from '../services/promotionEvents.service';
+import { sendWelcomeMessage } from '../services/automatedMessages.service';
 
 /**
  * @swagger
@@ -303,7 +303,7 @@ export const updateCustomer = async (
 
     // Check for promotions if level changed (async, non-blocking)
     if (req.body.customerLevelId && req.body.customerLevelId !== oldLevelId) {
-      checkPromotionsAfterLevelChange(id).catch((error) => {
+      checkPromotionsAfterLevelChange(parseInt(id)).catch((error) => {
         console.error('Error checking promotions after level change:', error);
       });
     }

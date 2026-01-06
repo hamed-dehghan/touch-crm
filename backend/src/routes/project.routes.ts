@@ -4,9 +4,9 @@ import {
   getProjects,
   getProjectById,
   updateProject,
-} from '';
-import { authenticate } from '';
-import { requireAnyPermission } from '';
+} from '../controllers/project.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { requireAnyPermission } from '../middlewares/rbac.middleware';
 
 const router = Router();
 

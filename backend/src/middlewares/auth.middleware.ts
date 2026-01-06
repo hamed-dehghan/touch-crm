@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, JWTPayload } from '';
-import { UnauthorizedError } from '';
+import { verifyToken, JWTPayload } from '../utils/jwt';
+import { UnauthorizedError } from '../utils/errors';
 import User from '../models/User';
 
 // Extend Express Request to include user
@@ -14,7 +14,7 @@ declare global {
 
 export const authenticate = async (
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {

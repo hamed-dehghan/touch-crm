@@ -6,9 +6,9 @@ import {
   getTaskById,
   updateTaskStatus,
   updateTask,
-} from '';
-import { authenticate } from '';
-import { requireAnyPermission, requirePermission } from '';
+} from '../controllers/task.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { requireAnyPermission, requirePermission } from '../middlewares/rbac.middleware';
 
 const router = Router();
 

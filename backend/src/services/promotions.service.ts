@@ -1,6 +1,5 @@
-import { Op } from 'sequelize';
 import CustomerPromotion from '../models/CustomerPromotion';
-import Promotion, { RewardType } from '';
+import Promotion, { RewardType } from '../models/Promotion';
 import Order from '../models/Order';
 import Customer from '../models/Customer';
 
@@ -64,10 +63,6 @@ export const getBestAvailablePromotion = async (
     where: {
       customerId,
       isUsed: false,
-      [Op.or]: [
-        { expiryDate: null },
-        { expiryDate: { [Op.gte]: new Date() } },
-      ],
     },
     include: [
       {
@@ -88,7 +83,7 @@ export const getBestAvailablePromotion = async (
   let bestDiscount = 0;
 
   for (const customerPromotion of availablePromotions) {
-    const promotion = customerPromotion.promotion;
+    const promotion = (customerPromotion as any).promotion;
     let discount = 0;
 
     if (promotion.rewardType === RewardType.PERCENTAGE) {
@@ -124,7 +119,7 @@ export const getBestAvailablePromotion = async (
  */
 export const applyPromotion = async (
   customerPromotionId: number,
-  orderId: number
+  _orderId: number
 ): Promise<void> => {
   await CustomerPromotion.update(
     {

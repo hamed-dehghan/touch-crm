@@ -1,6 +1,5 @@
-import { Op } from 'sequelize';
-import MessageQueue, { MessageStatus } from '';
-import { getSMSProvider } from '';
+import MessageQueue, { MessageStatus } from '../models/MessageQueue';
+import { getSMSProvider } from '../services/sms.service';
 
 const MAX_RETRIES = 3;
 const POLL_INTERVAL = 10000; // 10 seconds
@@ -18,7 +17,7 @@ const processMessage = async (message: MessageQueue): Promise<void> => {
       await message.update({
         status: MessageStatus.SENT,
         sentAt: new Date(),
-        errorMessage: null,
+        errorMessage: undefined,
       });
       console.log(`Message ${message.id} sent successfully to ${message.phoneNumber}`);
     } else {
@@ -64,16 +63,10 @@ const processMessage = async (message: MessageQueue): Promise<void> => {
  */
 const processMessageQueue = async (): Promise<void> => {
   try {
-    const now = new Date();
-
-    // Fetch pending messages that are scheduled for now or earlier
+    // Fetch pending messages
     const pendingMessages = await MessageQueue.findAll({
       where: {
         status: MessageStatus.PENDING,
-        [Op.or]: [
-          { scheduledFor: null },
-          { scheduledFor: { [Op.lte]: now } },
-        ],
       },
       limit: 10, // Process 10 messages at a time
       order: [['createdAt', 'ASC']],

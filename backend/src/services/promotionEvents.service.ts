@@ -2,10 +2,28 @@ import Customer from '../models/Customer';
 import Order from '../models/Order';
 import Promotion from '../models/Promotion';
 import CustomerPromotion from '../models/CustomerPromotion';
-import { evaluatePromotionConditions } from '';
+
+/**
+ * Promotion Events Service
+ * 
+ * Automatically triggers and assigns promotions based on customer actions:
+ * - First purchase (welcome bonus)
+ * - Minimum purchase threshold reached
+ * - Customer level upgrade
+ * - Successful referral
+ * 
+ * Promotions are assigned to customers and can be redeemed on future orders.
+ */
 
 /**
  * Check and assign promotions after order creation
+ * 
+ * Evaluates all active promotions to see if customer qualifies based on:
+ * - Being their first order
+ * - Meeting minimum purchase amount
+ * 
+ * @param customerId - The ID of the customer who placed the order
+ * @param orderTotal - The total amount of the order
  */
 export const checkPromotionsAfterOrder = async (customerId: number, orderTotal: number): Promise<void> => {
   // Get all active promotions

@@ -3,7 +3,7 @@ import WorkLog from '../models/WorkLog';
 import Customer from '../models/Customer';
 import Task from '../models/Task';
 import User from '../models/User';
-import { NotFoundError, ValidationError } from '';
+import { NotFoundError, ValidationError } from '../utils/errors';
 
 /**
  * @swagger
