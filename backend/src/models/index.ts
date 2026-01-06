@@ -16,4 +16,3 @@ export { default as Promotion } from './Promotion';
 export { default as CustomerPromotion } from './CustomerPromotion';
 export { default as Campaign } from './Campaign';
 export { default as MessageQueue } from './MessageQueue';
-

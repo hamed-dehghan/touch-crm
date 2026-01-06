@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
 import { UnauthorizedError, ValidationError } from '../utils/errors';
-import { comparePassword } from '../utils/password';
+import { comparePassword, hashPassword } from '../utils/password';
 import { generateToken } from '../utils/jwt';
 
 export const login = async (
@@ -65,9 +65,12 @@ export const register = async (
       throw new ValidationError('Username already exists');
     }
 
+    // Hash password before storing (security requirement)
+    const hashedPassword = await hashPassword(password);
+
     const user = await User.create({
       username,
-      passwordHash: password,
+      passwordHash: hashedPassword,
       fullName,
       email,
       roleId,
@@ -123,4 +126,3 @@ export const getCurrentUser = async (
     next(error);
   }
 };
-
