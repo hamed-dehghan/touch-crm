@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15-alpine
+    image: docker.arvancloud.ir/postgres:15-alpine
     container_name: touch-crm-postgres
     environment:
       POSTGRES_DB: ${DB_NAME:-touch_crm}
@@ -21,7 +21,7 @@ services:
       - touch-crm-network
 
   redis:
-    image: redis:7-alpine
+    image: docker.arvancloud.ir/redis:7-alpine
     container_name: touch-crm-redis
     ports:
       - "6379:6379"
@@ -70,7 +70,7 @@ services:
       - touch-crm-network
 
   nginx:
-    image: nginx:alpine
+    image: docker.arvancloud.ir/nginx:alpine
     container_name: touch-crm-nginx
     ports:
       - "80:80"
