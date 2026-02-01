@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   async up(queryInterface) {
     await queryInterface.bulkInsert('customer_levels', [
       {

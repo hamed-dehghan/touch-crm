@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 
-export default {
+module.exports = {
   async up(queryInterface) {
     // Get Administrator role ID
     const [roles] = await queryInterface.sequelize.query(

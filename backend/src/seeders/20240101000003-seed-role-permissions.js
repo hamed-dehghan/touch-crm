@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   async up(queryInterface) {
     // Get role IDs
     const [roles] = await queryInterface.sequelize.query(

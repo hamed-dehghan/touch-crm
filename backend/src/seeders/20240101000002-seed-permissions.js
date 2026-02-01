@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   async up(queryInterface) {
     const permissions = [
       // Customer permissions
