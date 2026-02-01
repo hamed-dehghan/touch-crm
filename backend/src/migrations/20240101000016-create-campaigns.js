@@ -1,4 +1,5 @@
-module.exports = {
+// backend/src/migrations/20240101000016-create-campaigns.js
+export default {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('campaigns', {
       id: {

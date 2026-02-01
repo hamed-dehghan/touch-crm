@@ -1,4 +1,5 @@
-module.exports = {
+// backend/src/migrations/20240101000011-create-orders.js
+export default {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('orders', {
       id: {

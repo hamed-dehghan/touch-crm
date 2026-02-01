@@ -1,4 +1,5 @@
-module.exports = {
+// backend/src/migrations/20240101000005-create-customer-levels.js
+export default {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('customer_levels', {
       id: {

@@ -1,4 +1,5 @@
-module.exports = {
+// backend/src/migrations/20240101000003-create-role-permissions.js
+export default {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('role_permissions', {
       role_id: {

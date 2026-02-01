@@ -64,7 +64,7 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
-    command: sh -c "npm run migrate && npm run seed && npm start"
+    command: sh -c "npm run build && npm run migrate && npm run seed && npm start"
     restart: unless-stopped
     networks:
       - touch-crm-network

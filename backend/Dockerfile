@@ -26,11 +26,16 @@ WORKDIR /app
 # Copy package files
 COPY package.json ./
 
-# Install only production dependencies
-RUN npm install --production
+# Install all dependencies (needed for migrations and dev with volume mounts)
+RUN npm install
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
+
+# Copy migration/seeder/db files
+COPY src/migrations ./src/migrations
+COPY src/seeders ./src/seeders
+COPY src/db ./src/db
 
 # Expose port
 EXPOSE 3000

@@ -1,4 +1,5 @@
-module.exports = {
+// backend/src/migrations/20240101000014-create-promotions.js
+export default {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('promotions', {
       id: {

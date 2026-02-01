@@ -1,4 +1,5 @@
-module.exports = {
+// backend/src/migrations/20240101000008-create-tasks.js
+export default {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('tasks', {
       id: {

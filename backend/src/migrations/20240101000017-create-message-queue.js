@@ -1,4 +1,5 @@
-module.exports = {
+// backend/src/migrations/20240101000017-create-message-queue.js
+export default {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('message_queue', {
       id: {
