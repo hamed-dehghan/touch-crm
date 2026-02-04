@@ -202,7 +202,7 @@ export const getCustomerWorkLogs = async (
     const workLogs = await WorkLog.findAll({
       where: { customerId: id },
       include: [
-        { model: User, as: 'user', attributes: ['id', 'username', 'fullName'] },
+        { model: User, as: 'loggedBy', attributes: ['id', 'username', 'fullName'] },
         { model: Task, as: 'task', attributes: ['id', 'title'] },
       ],
       order: [['logDate', 'DESC']],

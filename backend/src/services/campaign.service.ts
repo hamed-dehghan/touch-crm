@@ -106,9 +106,7 @@ const renderMessageTemplate = (template: string, customer: Customer): string => 
  * Execute a campaign - filter customers and populate message queue
  */
 export const executeCampaign = async (campaignId: number): Promise<number> => {
-  const campaign = await Campaign.findByPk(campaignId, {
-    include: [{ model: CustomerLevel, as: 'customerLevel' }],
-  });
+  const campaign = await Campaign.findByPk(campaignId);
 
   if (!campaign) {
     throw new Error('Campaign not found');
