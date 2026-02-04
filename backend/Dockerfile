@@ -1,4 +1,4 @@
-# Production image with volume mounts
+# Production image with committed node_modules
 FROM docker.arvancloud.ir/node:18-alpine
 
 WORKDIR /app
@@ -12,6 +12,23 @@ ARG GROUP_ID=1000
 
 RUN addgroup -g ${GROUP_ID} appuser && \
     adduser -D -u ${USER_ID} -G appuser appuser
+
+# Copy package files first (for better caching)
+COPY package.json ./
+COPY tsconfig.json ./
+
+# Copy and extract node_modules archive (committed to git for offline builds)
+# This allows building without network access
+COPY node_modules.tar.gz ./
+RUN tar -xzf node_modules.tar.gz && rm node_modules.tar.gz
+
+# Copy built files
+COPY dist ./dist
+
+# Copy migration/seeder/db files
+COPY src/migrations ./src/migrations
+COPY src/seeders ./src/seeders
+COPY src/db ./src/db
 
 # Change ownership of the app directory
 RUN chown -R appuser:appuser /app

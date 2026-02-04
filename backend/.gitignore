@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+# node_modules.tar.gz - Archive is committed for offline Docker builds
 .pnp
 .pnp.js
 

@@ -65,9 +65,10 @@ services:
       redis:
         condition: service_healthy
     volumes:
+      # Optional: Mount node_modules only if you want to override the committed ones
+      # - ./backend/node_modules:/app/node_modules:ro
       - ./backend/src:/app/src
       - ./backend/dist:/app/dist
-      - ./backend/node_modules:/app/node_modules:ro
       - ./backend/package.json:/app/package.json:ro
       - ./backend/tsconfig.json:/app/tsconfig.json:ro
       - ./backend/src/db:/app/src/db:ro
