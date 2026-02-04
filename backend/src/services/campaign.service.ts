@@ -1,9 +1,9 @@
 import { Op } from 'sequelize';
-import Campaign, { CampaignStatus } from '../models/Campaign';
-import Customer from '../models/Customer';
-import CustomerLevel from '../models/CustomerLevel';
-import MessageQueue, { MessageStatus } from '../models/MessageQueue';
-import Order from '../models/Order';
+import Campaign, { CampaignStatus } from '../models/Campaign.js';
+import Customer from '../models/Customer.js';
+import CustomerLevel from '../models/CustomerLevel.js';
+import MessageQueue, { MessageStatus } from '../models/MessageQueue.js';
+import Order from '../models/Order.js';
 
 /**
  * Campaign Service

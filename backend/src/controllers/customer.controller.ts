@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { Op } from 'sequelize';
-import Customer, { CustomerStatus } from '../models/Customer';
-import CustomerLevel from '../models/CustomerLevel';
-import { NotFoundError, ValidationError } from '../utils/errors';
-import { createCustomerSchema, updateCustomerSchema } from '../validations/customer.validation';
-import { checkPromotionsForReferral, checkPromotionsAfterLevelChange } from '../services/promotionEvents.service';
-import { sendWelcomeMessage } from '../services/automatedMessages.service';
+import Customer, { CustomerStatus } from '../models/Customer.js';
+import CustomerLevel from '../models/CustomerLevel.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
+import { createCustomerSchema, updateCustomerSchema } from '../validations/customer.validation.js';
+import { checkPromotionsForReferral, checkPromotionsAfterLevelChange } from '../services/promotionEvents.service.js';
+import { sendWelcomeMessage } from '../services/automatedMessages.service.js';
 
 /**
  * @swagger

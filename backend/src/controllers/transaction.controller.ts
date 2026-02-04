@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import Transaction from '../models/Transaction';
-import Customer from '../models/Customer';
-import Order from '../models/Order';
-import { NotFoundError } from '../utils/errors';
-import { createTransactionSchema } from '../validations/transaction.validation';
+import Transaction from '../models/Transaction.js';
+import Customer from '../models/Customer.js';
+import Order from '../models/Order.js';
+import { NotFoundError } from '../utils/errors.js';
+import { createTransactionSchema } from '../validations/transaction.validation.js';
 
 /**
  * @swagger

@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import Campaign, { CampaignStatus } from '../models/Campaign';
-import { NotFoundError, ValidationError } from '../utils/errors';
-import { executeCampaign } from '../services/campaign.service';
-import User from '../models/User';
+import Campaign, { CampaignStatus } from '../models/Campaign.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
+import { executeCampaign } from '../services/campaign.service.js';
+import User from '../models/User.js';
 
 /**
  * @swagger

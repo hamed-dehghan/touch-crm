@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import Promotion, { RewardType } from '../models/Promotion';
-import { NotFoundError, ValidationError } from '../utils/errors';
-import CustomerPromotion from '../models/CustomerPromotion';
+import Promotion, { RewardType } from '../models/Promotion.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
+import CustomerPromotion from '../models/CustomerPromotion.js';
 
 /**
  * @swagger

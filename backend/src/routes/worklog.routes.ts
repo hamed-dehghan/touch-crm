@@ -2,11 +2,11 @@ import { Router } from 'express';
 import {
   createWorkLog,
   getWorkLogs,
-} from '../controllers/worklog.controller';
-import { authenticate } from '../middlewares/auth.middleware';
-import { requireAnyPermission, requirePermission } from '../middlewares/rbac.middleware';
+} from '../controllers/worklog.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { requireAnyPermission, requirePermission } from '../middlewares/rbac.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @swagger

@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import User from '../models/User';
-import { UnauthorizedError, ValidationError } from '../utils/errors';
-import { comparePassword, hashPassword } from '../utils/password';
-import { generateToken } from '../utils/jwt';
+import User from '../models/User.js';
+import { UnauthorizedError, ValidationError } from '../utils/errors.js';
+import { comparePassword, hashPassword } from '../utils/password.js';
+import { generateToken } from '../utils/jwt.js';
 
 export const login = async (
   req: Request,

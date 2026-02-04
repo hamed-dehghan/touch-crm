@@ -1,9 +1,9 @@
 import { Op } from 'sequelize';
-import sequelize from '../config/database';
-import Customer from '../models/Customer';
-import MessageQueue, { MessageStatus } from '../models/MessageQueue';
-import Order from '../models/Order';
-import CustomerLevel from '../models/CustomerLevel';
+import sequelize from '../config/database.js';
+import Customer from '../models/Customer.js';
+import MessageQueue, { MessageStatus } from '../models/MessageQueue.js';
+import Order from '../models/Order.js';
+import CustomerLevel from '../models/CustomerLevel.js';
 
 /**
  * Send birthday messages to customers

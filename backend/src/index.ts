@@ -9,10 +9,10 @@
  */
 
 import dotenv from 'dotenv';
-import createApp from './app';
-import sequelize from './config/database';
-import { initializeAssociations } from './models/associations';
-import { startJobs } from './jobs';
+import createApp from './app.js';
+import sequelize from './config/database.js';
+import { initializeAssociations } from './models/associations.js';
+import { startJobs } from './jobs/index.js';
 
 // Load environment variables
 dotenv.config();

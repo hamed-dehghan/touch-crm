@@ -8,11 +8,11 @@ import {
   getPermissions,
   assignPermissions,
   removePermission,
-} from '../controllers/role.controller';
-import { authenticate } from '../middlewares/auth.middleware';
-import { requirePermission } from '../middlewares/rbac.middleware';
+} from '../controllers/role.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { requirePermission } from '../middlewares/rbac.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @swagger

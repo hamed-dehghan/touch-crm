@@ -1,7 +1,7 @@
-import Customer from '../models/Customer';
-import Order from '../models/Order';
-import Promotion from '../models/Promotion';
-import CustomerPromotion from '../models/CustomerPromotion';
+import Customer from '../models/Customer.js';
+import Order from '../models/Order.js';
+import Promotion from '../models/Promotion.js';
+import CustomerPromotion from '../models/CustomerPromotion.js';
 
 /**
  * Promotion Events Service

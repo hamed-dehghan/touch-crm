@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import Project, { ProjectStatus } from '../models/Project';
-import Customer from '../models/Customer';
-import { NotFoundError } from '../utils/errors';
+import Project, { ProjectStatus } from '../models/Project.js';
+import Customer from '../models/Customer.js';
+import { NotFoundError } from '../utils/errors.js';
 
 /**
  * @swagger

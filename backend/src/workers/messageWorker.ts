@@ -1,5 +1,5 @@
-import MessageQueue, { MessageStatus } from '../models/MessageQueue';
-import { getSMSProvider } from '../services/sms.service';
+import MessageQueue, { MessageStatus } from '../models/MessageQueue.js';
+import { getSMSProvider } from '../services/sms.service.js';
 
 const MAX_RETRIES = 3;
 const POLL_INTERVAL = 10000; // 10 seconds

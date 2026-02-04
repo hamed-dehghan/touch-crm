@@ -5,13 +5,13 @@ import {
   getCustomerById,
   updateCustomer,
   deleteCustomer,
-} from '../controllers/customer.controller';
-import { getCustomerWorkLogs } from '../controllers/worklog.controller';
-import { getCustomerTransactions } from '../controllers/transaction.controller';
-import { authenticate } from '../middlewares/auth.middleware';
-import { requirePermission, requireAnyPermission } from '../middlewares/rbac.middleware';
+} from '../controllers/customer.controller.js';
+import { getCustomerWorkLogs } from '../controllers/worklog.controller.js';
+import { getCustomerTransactions } from '../controllers/transaction.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { requirePermission, requireAnyPermission } from '../middlewares/rbac.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @swagger

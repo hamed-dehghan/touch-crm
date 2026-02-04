@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { login, register, getCurrentUser } from '../controllers/auth.controller';
-import { authenticate } from '../middlewares/auth.middleware';
-import { requirePermission } from '../middlewares/rbac.middleware';
+import { login, register, getCurrentUser } from '../controllers/auth.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { requirePermission } from '../middlewares/rbac.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @swagger

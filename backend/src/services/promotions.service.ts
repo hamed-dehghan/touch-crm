@@ -1,7 +1,7 @@
-import CustomerPromotion from '../models/CustomerPromotion';
-import Promotion, { RewardType } from '../models/Promotion';
-import Order from '../models/Order';
-import Customer from '../models/Customer';
+import CustomerPromotion from '../models/CustomerPromotion.js';
+import Promotion, { RewardType } from '../models/Promotion.js';
+import Order from '../models/Order.js';
+import Customer from '../models/Customer.js';
 
 interface PromotionCondition {
   type: string;

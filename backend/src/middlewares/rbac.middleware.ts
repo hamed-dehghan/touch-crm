@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { ForbiddenError } from '../utils/errors';
-import Permission from '../models/Permission';
-import RolePermission from '../models/RolePermission';
+import { ForbiddenError } from '../utils/errors.js';
+import Permission from '../models/Permission.js';
+import RolePermission from '../models/RolePermission.js';
 
 /**
  * Middleware to check if the authenticated user has a specific permission

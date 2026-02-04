@@ -1,41 +1,23 @@
-# Multi-stage build for optimized production image
-
-# Stage 1: Build
-FROM docker.arvancloud.ir/node:18-alpine AS builder
-
-WORKDIR /app
-
-# Copy package files
-COPY package.json ./
-COPY tsconfig.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy source code
-COPY src ./src
-
-# Build TypeScript
-RUN npm run build
-
-# Stage 2: Production
+# Production image with volume mounts
 FROM docker.arvancloud.ir/node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json ./
+# Install packages needed for migrations
+RUN apk add --no-cache bash
 
-# Install all dependencies (needed for migrations and dev with volume mounts)
-RUN npm install
+# Create a non-root user that matches the host user
+ARG USER_ID=1000
+ARG GROUP_ID=1000
 
-# Copy built files from builder
-COPY --from=builder /app/dist ./dist
+RUN addgroup -g ${GROUP_ID} appuser && \
+    adduser -D -u ${USER_ID} -G appuser appuser
 
-# Copy migration/seeder/db files
-COPY src/migrations ./src/migrations
-COPY src/seeders ./src/seeders
-COPY src/db ./src/db
+# Change ownership of the app directory
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 3000

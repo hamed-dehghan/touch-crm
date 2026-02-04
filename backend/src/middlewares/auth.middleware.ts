@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, JWTPayload } from '../utils/jwt';
-import { UnauthorizedError } from '../utils/errors';
-import User from '../models/User';
+import { verifyToken, JWTPayload } from '../utils/jwt.js';
+import { UnauthorizedError } from '../utils/errors.js';
+import User from '../models/User.js';
 
 // Extend Express Request to include user
 declare global {

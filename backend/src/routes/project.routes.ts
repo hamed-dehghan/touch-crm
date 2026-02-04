@@ -4,11 +4,11 @@ import {
   getProjects,
   getProjectById,
   updateProject,
-} from '../controllers/project.controller';
-import { authenticate } from '../middlewares/auth.middleware';
-import { requireAnyPermission } from '../middlewares/rbac.middleware';
+} from '../controllers/project.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { requireAnyPermission } from '../middlewares/rbac.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @swagger
