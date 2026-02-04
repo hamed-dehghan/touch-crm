@@ -6,13 +6,6 @@ WORKDIR /app
 # Install packages needed for migrations
 RUN apk add --no-cache bash
 
-# Create a non-root user that matches the host user
-ARG USER_ID=1000
-ARG GROUP_ID=1000
-
-RUN addgroup -g ${GROUP_ID} appuser && \
-    adduser -D -u ${USER_ID} -G appuser appuser
-
 # Copy package files first (for better caching)
 COPY package.json ./
 COPY tsconfig.json ./
@@ -29,12 +22,6 @@ COPY dist ./dist
 COPY src/migrations ./src/migrations
 COPY src/seeders ./src/seeders
 COPY src/db ./src/db
-
-# Change ownership of the app directory
-RUN chown -R appuser:appuser /app
-
-# Switch to non-root user
-USER appuser
 
 # Expose port
 EXPOSE 3000

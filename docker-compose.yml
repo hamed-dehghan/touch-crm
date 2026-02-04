@@ -74,7 +74,7 @@ services:
       - ./backend/src/db:/app/src/db:ro
       - ./backend/src/migrations:/app/src/migrations:ro
       - ./backend/src/seeders:/app/src/seeders:ro
-    command: sh -c "if [ -f dist/index.js ]; then node src/db/migrate.js up && node src/db/seed.js up && node dist/index.js; else echo 'Error: dist/index.js not found. Please run: cd backend && pnpm run build'; exit 1; fi"
+    command: sh -c "if [ -f dist/index.js ]; then node src/db/migrate.js up && node src/db/seed.js up && node dist/index.js; else echo 'Error - dist/index.js not found. Please run - cd backend && pnpm run build'; exit 1; fi"
     restart: unless-stopped
     networks:
       - touch-crm-network

@@ -1,6 +1,5 @@
 node_modules
 # node_modules.tar.gz - Archive is copied and extracted in Docker image
-dist
 .env
 .env.local
 .git
