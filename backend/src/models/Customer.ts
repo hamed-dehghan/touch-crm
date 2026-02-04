@@ -37,21 +37,21 @@ class Customer
   extends Model<CustomerAttributes, CustomerCreationAttributes>
   implements CustomerAttributes
 {
-  public id!: number;
-  public firstName?: string;
-  public lastName!: string;
-  public phoneNumber!: string;
-  public email?: string;
-  public birthDate?: Date;
-  public status!: CustomerStatus;
-  public customerType!: CustomerType;
-  public companyName?: string;
-  public address?: string;
-  public website?: string;
-  public customerLevelId?: number;
-  public referredByCustomerId?: number;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare firstName?: string;
+  declare lastName: string;
+  declare phoneNumber: string;
+  declare email?: string;
+  declare birthDate?: Date;
+  declare status: CustomerStatus;
+  declare customerType: CustomerType;
+  declare companyName?: string;
+  declare address?: string;
+  declare website?: string;
+  declare customerLevelId?: number;
+  declare referredByCustomerId?: number;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 Customer.init(

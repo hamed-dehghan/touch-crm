@@ -17,12 +17,12 @@ class Product
   extends Model<ProductAttributes, ProductCreationAttributes>
   implements ProductAttributes
 {
-  public id!: number;
-  public productName!: string;
-  public price!: number;
-  public taxRate!: number;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare productName: string;
+  declare price: number;
+  declare taxRate: number;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 Product.init(

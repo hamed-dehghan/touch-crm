@@ -25,15 +25,15 @@ class Promotion
   extends Model<PromotionAttributes, PromotionCreationAttributes>
   implements PromotionAttributes
 {
-  public id!: number;
-  public title!: string;
-  public rewardType!: RewardType;
-  public rewardValue!: number;
-  public conditionJson!: string;
-  public durationDays?: number;
-  public isActive!: boolean;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare title: string;
+  declare rewardType: RewardType;
+  declare rewardValue: number;
+  declare conditionJson: string;
+  declare durationDays?: number;
+  declare isActive: boolean;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 Promotion.init(

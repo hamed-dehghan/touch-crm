@@ -16,11 +16,11 @@ class Permission
   extends Model<PermissionAttributes, PermissionCreationAttributes>
   implements PermissionAttributes
 {
-  public id!: number;
-  public actionCode!: string;
-  public description?: string;
-  public resource?: string;
-  public readonly createdAt!: Date;
+  declare id: number;
+  declare actionCode: string;
+  declare description?: string;
+  declare resource?: string;
+  declare readonly createdAt: Date;
 }
 
 Permission.init(

@@ -21,16 +21,16 @@ class WorkLog
   extends Model<WorkLogAttributes, WorkLogCreationAttributes>
   implements WorkLogAttributes
 {
-  public id!: number;
-  public userId!: number;
-  public customerId?: number;
-  public taskId?: number;
-  public logDate!: Date;
-  public durationMinutes?: number;
-  public description!: string;
-  public result!: string;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare userId: number;
+  declare customerId?: number;
+  declare taskId?: number;
+  declare logDate: Date;
+  declare durationMinutes?: number;
+  declare description: string;
+  declare result: string;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 WorkLog.init(

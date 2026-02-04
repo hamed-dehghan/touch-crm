@@ -224,11 +224,11 @@ export const initializeAssociations = (): void => {
 
   // WorkLog <-> User (logged by)
   WorkLog.belongsTo(User, {
-    foreignKey: 'loggedByUserId',
+    foreignKey: 'userId',
     as: 'loggedBy',
   });
   User.hasMany(WorkLog, {
-    foreignKey: 'loggedByUserId',
+    foreignKey: 'userId',
     as: 'workLogs',
   });
 

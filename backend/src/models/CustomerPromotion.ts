@@ -20,15 +20,15 @@ class CustomerPromotion
   extends Model<CustomerPromotionAttributes, CustomerPromotionCreationAttributes>
   implements CustomerPromotionAttributes
 {
-  public id!: number;
-  public customerId!: number;
-  public promotionId!: number;
-  public assignedAt!: Date;
-  public expiryDate?: Date;
-  public isUsed!: boolean;
-  public usedAt?: Date;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare customerId: number;
+  declare promotionId: number;
+  declare assignedAt: Date;
+  declare expiryDate?: Date;
+  declare isUsed: boolean;
+  declare usedAt?: Date;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 CustomerPromotion.init(

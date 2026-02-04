@@ -14,9 +14,9 @@ class RolePermission
   extends Model<RolePermissionAttributes, RolePermissionCreationAttributes>
   implements RolePermissionAttributes
 {
-  public roleId!: number;
-  public permissionId!: number;
-  public readonly createdAt!: Date;
+  declare roleId: number;
+  declare permissionId: number;
+  declare readonly createdAt: Date;
 }
 
 RolePermission.init(

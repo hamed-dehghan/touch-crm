@@ -86,7 +86,7 @@ export const createWorkLog = async (
 
     const createdWorkLog = await WorkLog.findByPk(workLog.id, {
       include: [
-        { model: User, as: 'user', attributes: ['id', 'username', 'fullName'] },
+        { model: User, as: 'loggedBy', attributes: ['id', 'username', 'fullName'] },
         { model: Customer, as: 'customer', attributes: ['id', 'firstName', 'lastName'] },
         { model: Task, as: 'task', attributes: ['id', 'title'] },
       ],
@@ -150,7 +150,7 @@ export const getWorkLogs = async (
     const workLogs = await WorkLog.findAll({
       where,
       include: [
-        { model: User, as: 'user', attributes: ['id', 'username', 'fullName'] },
+        { model: User, as: 'loggedBy', attributes: ['id', 'username', 'fullName'] },
         { model: Customer, as: 'customer', attributes: ['id', 'firstName', 'lastName'] },
         { model: Task, as: 'task', attributes: ['id', 'title'] },
       ],

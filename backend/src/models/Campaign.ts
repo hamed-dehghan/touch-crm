@@ -27,15 +27,15 @@ class Campaign
   extends Model<CampaignAttributes, CampaignCreationAttributes>
   implements CampaignAttributes
 {
-  public id!: number;
-  public name!: string;
-  public messageTemplate!: string;
-  public filterConditionsJson?: string;
-  public scheduledSendTime?: Date;
-  public status!: CampaignStatus;
-  public createdByUserId!: number;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare name: string;
+  declare messageTemplate: string;
+  declare filterConditionsJson?: string;
+  declare scheduledSendTime?: Date;
+  declare status: CampaignStatus;
+  declare createdByUserId: number;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 Campaign.init(
