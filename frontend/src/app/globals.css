@@ -1,0 +1,34 @@
+/* IranSans Persian font – must be first */
+@import url("https://farsifont.github.io/css/iransans.css");
+
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #333333;
+  /* Theme: TOUCH CRM */
+  --color-primary: #b333aa;       /* Magenta – logo, active states */
+  --color-accent: #ff9800;       /* Orange – primary buttons */
+  --color-active-bg: #feebfe;    /* Light pink – active menu */
+  --color-content-bg: #f8f8f8;  /* Main content background */
+  --color-placeholder: #cccccc;
+  --color-border: #e5e5e5;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--color-primary);
+  --color-accent: var(--color-accent);
+  --color-active-bg: var(--color-active-bg);
+  --color-content-bg: var(--color-content-bg);
+  --color-placeholder: var(--color-placeholder);
+  --color-border: var(--color-border);
+  --font-sans: "IranSans", Tahoma, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "IranSans", Tahoma, sans-serif;
+}
