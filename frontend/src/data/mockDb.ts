@@ -16,6 +16,9 @@ import type {
   Promotion,
   CustomerPromotion,
   Campaign,
+  Task,
+  Project,
+  WorkLog,
 } from '@/types/api';
 
 let nextId = {
@@ -31,6 +34,10 @@ let nextId = {
   promotion: 10,
   customerPromotion: 15,
   campaign: 5,
+  task: 5,
+  project: 4,
+  workLog: 4,
+  rolePermission: 20,
 };
 
 export const roles: Role[] = [
@@ -233,6 +240,160 @@ export const campaigns: Campaign[] = [
   },
 ];
 
+/* ── Role-Permission assignments (mock RBAC) ── */
+export const rolePermissions: { roleId: number; permissionId: number }[] = [
+  // Admin has all permissions
+  ...permissions.map((p) => ({ roleId: 3, permissionId: p.id })),
+  // Sales Manager
+  { roleId: 2, permissionId: 1 },
+  { roleId: 2, permissionId: 2 },
+  { roleId: 2, permissionId: 3 },
+  { roleId: 2, permissionId: 4 },
+  { roleId: 2, permissionId: 6 },
+  // Sales Rep
+  { roleId: 1, permissionId: 1 },
+  { roleId: 1, permissionId: 3 },
+  { roleId: 1, permissionId: 4 },
+];
+
+/* ── Projects ── */
+export const projects: Project[] = [
+  {
+    id: 1,
+    projectName: 'پروژه استقرار نرم‌افزار',
+    customerId: 1,
+    status: 'IN_PROGRESS',
+    description: 'استقرار و پیکربندی نرم‌افزار',
+    createdAt: '',
+    updatedAt: '',
+    customer: { id: 1, firstName: 'علی', lastName: 'محمدی' },
+  },
+  {
+    id: 2,
+    projectName: 'مشاوره فروش',
+    customerId: 2,
+    status: 'OPEN',
+    description: 'ارائه مشاوره فروش به مشتری',
+    createdAt: '',
+    updatedAt: '',
+    customer: { id: 2, firstName: 'مریم', lastName: 'رضایی' },
+  },
+  {
+    id: 3,
+    projectName: 'طراحی وب‌سایت',
+    customerId: 3,
+    status: 'OPEN',
+    createdAt: '',
+    updatedAt: '',
+    customer: { id: 3, firstName: 'حسین', lastName: 'احمدی' },
+  },
+];
+
+/* ── Tasks ── */
+export const tasks: Task[] = [
+  {
+    id: 1,
+    title: 'تماس پیگیری با مشتری',
+    description: 'پیگیری سفارش قبلی',
+    projectId: 1,
+    assignedToUserId: 1,
+    createdByUserId: 1,
+    dueDate: new Date(Date.now() + 2 * 86400000).toISOString(),
+    status: 'PENDING',
+    isRecurring: false,
+    createdAt: '',
+    updatedAt: '',
+    project: { id: 1, projectName: 'پروژه استقرار نرم‌افزار' },
+    assignedTo: { id: 1, username: 'admin', fullName: 'مدیر سیستم' },
+    createdBy: { id: 1, username: 'admin', fullName: 'مدیر سیستم' },
+  },
+  {
+    id: 2,
+    title: 'ارسال پیش‌فاکتور',
+    assignedToUserId: 2,
+    createdByUserId: 1,
+    dueDate: new Date(Date.now() + 5 * 86400000).toISOString(),
+    status: 'IN_PROGRESS',
+    isRecurring: false,
+    createdAt: '',
+    updatedAt: '',
+    assignedTo: { id: 2, username: 'manager1', fullName: 'مدیر فروش' },
+    createdBy: { id: 1, username: 'admin', fullName: 'مدیر سیستم' },
+  },
+  {
+    id: 3,
+    title: 'بررسی رضایت مشتری',
+    description: 'تماس ماهانه',
+    projectId: 2,
+    assignedToUserId: 1,
+    createdByUserId: 1,
+    status: 'PENDING',
+    isRecurring: true,
+    recurringIntervalDays: 30,
+    createdAt: '',
+    updatedAt: '',
+    project: { id: 2, projectName: 'مشاوره فروش' },
+    assignedTo: { id: 1, username: 'admin', fullName: 'مدیر سیستم' },
+    createdBy: { id: 1, username: 'admin', fullName: 'مدیر سیستم' },
+  },
+  {
+    id: 4,
+    title: 'جلسه دمو محصول',
+    assignedToUserId: 2,
+    createdByUserId: 1,
+    dueDate: new Date(Date.now() - 86400000).toISOString(),
+    status: 'COMPLETED',
+    isRecurring: false,
+    createdAt: '',
+    updatedAt: '',
+    assignedTo: { id: 2, username: 'manager1', fullName: 'مدیر فروش' },
+    createdBy: { id: 1, username: 'admin', fullName: 'مدیر سیستم' },
+  },
+];
+
+/* ── Work Logs ── */
+export const workLogs: WorkLog[] = [
+  {
+    id: 1,
+    userId: 1,
+    customerId: 1,
+    taskId: 1,
+    logDate: new Date().toISOString().slice(0, 10),
+    durationMinutes: 30,
+    description: 'تماس تلفنی با مشتری',
+    result: 'مشتری درخواست ارسال پیش‌فاکتور داشت',
+    createdAt: '',
+    updatedAt: '',
+    loggedBy: { id: 1, username: 'admin', fullName: 'مدیر سیستم' },
+    customer: { id: 1, firstName: 'علی', lastName: 'محمدی' },
+    task: { id: 1, title: 'تماس پیگیری با مشتری' },
+  },
+  {
+    id: 2,
+    userId: 2,
+    customerId: 2,
+    logDate: new Date().toISOString().slice(0, 10),
+    durationMinutes: 60,
+    description: 'جلسه حضوری',
+    result: 'توافق اولیه انجام شد',
+    createdAt: '',
+    updatedAt: '',
+    loggedBy: { id: 2, username: 'manager1', fullName: 'مدیر فروش' },
+    customer: { id: 2, firstName: 'مریم', lastName: 'رضایی' },
+  },
+  {
+    id: 3,
+    userId: 1,
+    logDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+    durationMinutes: 15,
+    description: 'ثبت اطلاعات در سیستم',
+    result: 'اطلاعات به‌روزرسانی شد',
+    createdAt: '',
+    updatedAt: '',
+    loggedBy: { id: 1, username: 'admin', fullName: 'مدیر سیستم' },
+  },
+];
+
 export function getNextId(key: keyof typeof nextId): number {
   return nextId[key]++;
 }
@@ -251,5 +412,9 @@ export function resetNextIds() {
     promotion: 10,
     customerPromotion: 15,
     campaign: 5,
+    task: 5,
+    project: 4,
+    workLog: 4,
+    rolePermission: 20,
   };
 }

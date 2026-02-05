@@ -6,8 +6,93 @@ import Product from '../models/Product.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 /**
- * Create a new order with order items
- * Calculates totals, applies discounts and taxes
+ * @swagger
+ * /api/v1/orders:
+ *   post:
+ *     summary: Create a new order with order items
+ *     description: Creates an order for a customer. Calculates totals from product prices, applies optional discount and tax.
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - customerId
+ *               - orderItems
+ *             properties:
+ *               customerId:
+ *                 type: integer
+ *                 description: ID of the customer placing the order
+ *                 example: 1
+ *               orderItems:
+ *                 type: array
+ *                 description: List of products and quantities
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - productId
+ *                   properties:
+ *                     productId:
+ *                       type: integer
+ *                       description: ID of the product
+ *                       example: 1
+ *                     quantity:
+ *                       type: integer
+ *                       description: Quantity of the product (defaults to 1)
+ *                       example: 2
+ *               discountAmount:
+ *                 type: number
+ *                 description: Optional discount amount to subtract from total
+ *                 example: 10.00
+ *               taxAmount:
+ *                 type: number
+ *                 description: Optional tax amount to add to total
+ *                 example: 5.50
+ *     responses:
+ *       201:
+ *         description: Order created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     order:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                         customerId:
+ *                           type: integer
+ *                         orderDate:
+ *                           type: string
+ *                           format: date-time
+ *                         totalAmount:
+ *                           type: number
+ *                         discountAmount:
+ *                           type: number
+ *                         taxAmount:
+ *                           type: number
+ *                         finalAmount:
+ *                           type: number
+ *                         customer:
+ *                           type: object
+ *                         orderItems:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *       400:
+ *         description: Validation error (missing required fields)
+ *       404:
+ *         description: Customer or product not found
  */
 export const createOrder = async (
   req: Request,
@@ -91,6 +176,55 @@ export const createOrder = async (
   }
 };
 
+/**
+ * @swagger
+ * /api/v1/orders:
+ *   get:
+ *     summary: Get list of all orders
+ *     description: Retrieves all orders with associated customer and order items, sorted by order date descending.
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of orders
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     orders:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           customerId:
+ *                             type: integer
+ *                           orderDate:
+ *                             type: string
+ *                             format: date-time
+ *                           totalAmount:
+ *                             type: number
+ *                           discountAmount:
+ *                             type: number
+ *                           taxAmount:
+ *                             type: number
+ *                           finalAmount:
+ *                             type: number
+ *                           customer:
+ *                             type: object
+ *                           orderItems:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ */
 export const getOrders = async (
   _req: Request,
   res: Response,
@@ -114,6 +248,62 @@ export const getOrders = async (
   }
 };
 
+/**
+ * @swagger
+ * /api/v1/orders/{id}:
+ *   get:
+ *     summary: Get order by ID
+ *     description: Retrieves a single order with full details including customer, order items, and products.
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The order ID
+ *     responses:
+ *       200:
+ *         description: Order details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     order:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                         customerId:
+ *                           type: integer
+ *                         orderDate:
+ *                           type: string
+ *                           format: date-time
+ *                         totalAmount:
+ *                           type: number
+ *                         discountAmount:
+ *                           type: number
+ *                         taxAmount:
+ *                           type: number
+ *                         finalAmount:
+ *                           type: number
+ *                         customer:
+ *                           type: object
+ *                         orderItems:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *       404:
+ *         description: Order not found
+ */
 export const getOrderById = async (
   req: Request,
   res: Response,

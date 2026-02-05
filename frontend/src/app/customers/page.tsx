@@ -78,6 +78,11 @@ export default function CustomersPage() {
                       <td className="py-2 px-3">
                         <Link href={`/customers/${c.id}`}><Button variant="ghost" size="sm">مشاهده</Button></Link>
                         <Link href={`/customers/${c.id}/edit`}><Button variant="ghost" size="sm">ویرایش</Button></Link>
+                        <Button variant="danger" size="sm" onClick={async () => {
+                          if (!confirm('آیا از حذف این مشتری مطمئنید؟')) return;
+                          const res = await api.customers.delete(c.id);
+                          if (res.success) fetchCustomers(pagination.page);
+                        }}>حذف</Button>
                       </td>
                     </tr>
                   ))}

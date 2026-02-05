@@ -153,6 +153,59 @@ export interface Campaign {
   createdBy?: User;
 }
 
+/* ── Task ── */
+export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export interface Task {
+  id: number;
+  title: string;
+  description?: string;
+  projectId?: number;
+  assignedToUserId: number;
+  createdByUserId: number;
+  dueDate?: string;
+  status: TaskStatus;
+  isRecurring: boolean;
+  recurringIntervalDays?: number;
+  lastTriggeredAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  project?: { id: number; projectName: string };
+  assignedTo?: { id: number; username: string; fullName?: string };
+  createdBy?: { id: number; username: string; fullName?: string };
+}
+
+/* ── Project ── */
+export type ProjectStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export interface Project {
+  id: number;
+  projectName: string;
+  customerId: number;
+  status: ProjectStatus;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  customer?: { id: number; firstName?: string; lastName: string };
+}
+
+/* ── WorkLog ── */
+export interface WorkLog {
+  id: number;
+  userId: number;
+  customerId?: number;
+  taskId?: number;
+  logDate: string;
+  durationMinutes?: number;
+  description: string;
+  result: string;
+  createdAt?: string;
+  updatedAt?: string;
+  loggedBy?: { id: number; username: string; fullName?: string };
+  customer?: { id: number; firstName?: string; lastName: string };
+  task?: { id: number; title: string };
+}
+
 export interface RfmScores {
   recency: number;
   frequency: number;

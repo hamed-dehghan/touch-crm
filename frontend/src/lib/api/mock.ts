@@ -3,11 +3,13 @@
  * Matches backend API contract; swap with real client when backend is ready.
  */
 
-import type { ApiClient, ListParams } from './client';
-import type { ApiResponse, Pagination, CustomerRfmResponse, RfmScores } from '@/types/api';
+import type { ApiClient } from './client';
+import type { CustomerRfmResponse, RfmScores } from '@/types/api';
 import {
   users,
   roles,
+  permissions,
+  rolePermissions,
   customerLevels,
   customers,
   products,
@@ -17,6 +19,9 @@ import {
   promotions,
   customerPromotions,
   campaigns,
+  projects,
+  tasks,
+  workLogs,
   getNextId,
 } from '@/data/mockDb';
 
@@ -349,6 +354,248 @@ const transactionsApi: ApiClient['transactions'] = {
     if (!transaction) return { success: false, error: { message: 'Transaction not found', statusCode: 404 } };
     return { success: true, data: { transaction } };
   },
+  async create(body) {
+    const customer = customers.find((c) => c.id === body.customerId);
+    if (!customer) return { success: false, error: { message: 'Customer not found', statusCode: 404 } };
+    if (body.orderId) {
+      const order = orders.find((o) => o.id === body.orderId);
+      if (!order) return { success: false, error: { message: 'Order not found', statusCode: 404 } };
+    }
+    const id = getNextId('transaction');
+    const transaction: typeof transactions[0] = {
+      id,
+      customerId: body.customerId,
+      orderId: body.orderId,
+      paymentMethod: body.paymentMethod as 'CASH' | 'CHECK',
+      amount: body.amount,
+      transactionDate: body.transactionDate,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      customer,
+    };
+    transactions.push(transaction);
+    return { success: true, data: { transaction } };
+  },
+};
+
+const usersApi: ApiClient['users'] = {
+  async list() {
+    return { success: true, data: { users: users.map((u) => ({ ...u })) } };
+  },
+  async create(body) {
+    if (users.some((u) => u.username === body.username)) {
+      return { success: false, error: { message: 'Username already exists', statusCode: 400 } };
+    }
+    const id = getNextId('user');
+    const role = roles.find((r) => r.id === body.roleId);
+    const user: typeof users[0] = {
+      id,
+      username: body.username,
+      fullName: body.fullName,
+      email: body.email,
+      roleId: body.roleId,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      role,
+    };
+    users.push(user);
+    return { success: true, data: { user } };
+  },
+  async update(id, body) {
+    const idx = users.findIndex((u) => u.id === id);
+    if (idx === -1) return { success: false, error: { message: 'User not found', statusCode: 404 } };
+    const role = body.roleId ? roles.find((r) => r.id === body.roleId) : users[idx].role;
+    users[idx] = { ...users[idx], ...body, role };
+    return { success: true, data: { user: users[idx] } };
+  },
+  async delete(id) {
+    const idx = users.findIndex((u) => u.id === id);
+    if (idx === -1) return { success: false, error: { message: 'User not found', statusCode: 404 } };
+    users.splice(idx, 1);
+    return { success: true };
+  },
+};
+
+const rolesApi: ApiClient['roles'] = {
+  async list() {
+    const result = roles.map((r) => {
+      const perms = rolePermissions.filter((rp) => rp.roleId === r.id).map((rp) => permissions.find((p) => p.id === rp.permissionId)!).filter(Boolean);
+      return { ...r, permissionCount: perms.length, permissions: perms };
+    });
+    return { success: true, data: { roles: result } };
+  },
+  async getById(id) {
+    const role = roles.find((r) => r.id === id);
+    if (!role) return { success: false, error: { message: 'Role not found', statusCode: 404 } };
+    const perms = rolePermissions.filter((rp) => rp.roleId === id).map((rp) => permissions.find((p) => p.id === rp.permissionId)!).filter(Boolean);
+    return { success: true, data: { role: { ...role, permissions: perms } } };
+  },
+  async create(body) {
+    const id = getNextId('role');
+    const role = { id, roleName: body.roleName, description: body.description, createdAt: '', updatedAt: '' };
+    roles.push(role);
+    return { success: true, data: { role } };
+  },
+  async update(id, body) {
+    const idx = roles.findIndex((r) => r.id === id);
+    if (idx === -1) return { success: false, error: { message: 'Role not found', statusCode: 404 } };
+    roles[idx] = { ...roles[idx], ...body, updatedAt: new Date().toISOString() };
+    return { success: true, data: { role: roles[idx] } };
+  },
+  async delete(id) {
+    const idx = roles.findIndex((r) => r.id === id);
+    if (idx === -1) return { success: false, error: { message: 'Role not found', statusCode: 404 } };
+    if (users.some((u) => u.roleId === id)) return { success: false, error: { message: 'Cannot delete role with assigned users', statusCode: 400 } };
+    roles.splice(idx, 1);
+    return { success: true };
+  },
+  async getPermissions() {
+    return { success: true, data: { permissions: [...permissions] } };
+  },
+  async assignPermissions(id, permissionIds) {
+    const role = roles.find((r) => r.id === id);
+    if (!role) return { success: false, error: { message: 'Role not found', statusCode: 404 } };
+    // Remove old
+    const toRemove = rolePermissions.filter((rp) => rp.roleId === id);
+    toRemove.forEach((rp) => { const i = rolePermissions.indexOf(rp); if (i !== -1) rolePermissions.splice(i, 1); });
+    // Add new
+    permissionIds.forEach((pid) => rolePermissions.push({ roleId: id, permissionId: pid }));
+    const perms = permissionIds.map((pid) => permissions.find((p) => p.id === pid)!).filter(Boolean);
+    return { success: true, data: { role: { ...role, permissions: perms } } };
+  },
+  async removePermission(roleId, permissionId) {
+    const idx = rolePermissions.findIndex((rp) => rp.roleId === roleId && rp.permissionId === permissionId);
+    if (idx === -1) return { success: false, error: { message: 'Permission not found on role', statusCode: 404 } };
+    rolePermissions.splice(idx, 1);
+    return { success: true };
+  },
+};
+
+const tasksApi: ApiClient['tasks'] = {
+  async list(params) {
+    let list = [...tasks];
+    if (params?.projectId) list = list.filter((t) => t.projectId === params.projectId);
+    if (params?.status) list = list.filter((t) => t.status === params.status);
+    return { success: true, data: { tasks: list } };
+  },
+  async getMyTasks() {
+    // In mock mode, return tasks assigned to user 1
+    const list = tasks.filter((t) => t.assignedToUserId === 1);
+    return { success: true, data: { tasks: list } };
+  },
+  async getById(id) {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return { success: false, error: { message: 'Task not found', statusCode: 404 } };
+    return { success: true, data: { task } };
+  },
+  async create(body) {
+    const id = getNextId('task');
+    const assignedUser = users.find((u) => u.id === body.assignedToUserId);
+    const project = body.projectId ? projects.find((p) => p.id === body.projectId) : undefined;
+    const task: typeof tasks[0] = {
+      id,
+      title: body.title!,
+      description: body.description,
+      projectId: body.projectId,
+      assignedToUserId: body.assignedToUserId!,
+      createdByUserId: 1,
+      dueDate: body.dueDate,
+      status: 'PENDING',
+      isRecurring: body.isRecurring ?? false,
+      recurringIntervalDays: body.recurringIntervalDays,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      project: project ? { id: project.id, projectName: project.projectName } : undefined,
+      assignedTo: assignedUser ? { id: assignedUser.id, username: assignedUser.username, fullName: assignedUser.fullName } : undefined,
+      createdBy: { id: 1, username: 'admin', fullName: 'مدیر سیستم' },
+    };
+    tasks.push(task);
+    return { success: true, data: { task } };
+  },
+  async update(id, body) {
+    const idx = tasks.findIndex((t) => t.id === id);
+    if (idx === -1) return { success: false, error: { message: 'Task not found', statusCode: 404 } };
+    tasks[idx] = { ...tasks[idx], ...body, updatedAt: new Date().toISOString() };
+    return { success: true, data: { task: tasks[idx] } };
+  },
+  async updateStatus(id, status) {
+    const idx = tasks.findIndex((t) => t.id === id);
+    if (idx === -1) return { success: false, error: { message: 'Task not found', statusCode: 404 } };
+    tasks[idx] = { ...tasks[idx], status: status as typeof tasks[0]['status'], updatedAt: new Date().toISOString() };
+    return { success: true, data: { task: tasks[idx] } };
+  },
+};
+
+const projectsApi: ApiClient['projects'] = {
+  async list(params) {
+    let list = [...projects];
+    if (params?.customerId) list = list.filter((p) => p.customerId === params.customerId);
+    return { success: true, data: { projects: list } };
+  },
+  async getById(id) {
+    const project = projects.find((p) => p.id === id);
+    if (!project) return { success: false, error: { message: 'Project not found', statusCode: 404 } };
+    return { success: true, data: { project } };
+  },
+  async create(body) {
+    const customer = customers.find((c) => c.id === body.customerId);
+    if (!customer) return { success: false, error: { message: 'Customer not found', statusCode: 404 } };
+    const id = getNextId('project');
+    const project: typeof projects[0] = {
+      id,
+      projectName: body.projectName!,
+      customerId: body.customerId!,
+      status: (body.status as typeof projects[0]['status']) ?? 'OPEN',
+      description: body.description,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      customer: { id: customer.id, firstName: customer.firstName, lastName: customer.lastName },
+    };
+    projects.push(project);
+    return { success: true, data: { project } };
+  },
+  async update(id, body) {
+    const idx = projects.findIndex((p) => p.id === id);
+    if (idx === -1) return { success: false, error: { message: 'Project not found', statusCode: 404 } };
+    projects[idx] = { ...projects[idx], ...body, updatedAt: new Date().toISOString() };
+    return { success: true, data: { project: projects[idx] } };
+  },
+};
+
+const workLogsApi: ApiClient['workLogs'] = {
+  async list(params) {
+    let list = [...workLogs];
+    if (params?.userId) list = list.filter((w) => w.userId === params.userId);
+    if (params?.customerId) list = list.filter((w) => w.customerId === params.customerId);
+    if (params?.taskId) list = list.filter((w) => w.taskId === params.taskId);
+    return { success: true, data: { workLogs: list } };
+  },
+  async create(body) {
+    const id = getNextId('workLog');
+    const customer = body.customerId ? customers.find((c) => c.id === body.customerId) : undefined;
+    const task = body.taskId ? tasks.find((t) => t.id === body.taskId) : undefined;
+    const wl: typeof workLogs[0] = {
+      id,
+      userId: 1,
+      customerId: body.customerId,
+      taskId: body.taskId,
+      logDate: body.logDate,
+      durationMinutes: body.durationMinutes,
+      description: body.description,
+      result: body.result,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      loggedBy: { id: 1, username: 'admin', fullName: 'مدیر سیستم' },
+      customer: customer ? { id: customer.id, firstName: customer.firstName, lastName: customer.lastName } : undefined,
+      task: task ? { id: task.id, title: task.title } : undefined,
+    };
+    workLogs.push(wl);
+    return { success: true, data: { workLog: wl } };
+  },
+  async getByCustomer(customerId) {
+    const list = workLogs.filter((w) => w.customerId === customerId);
+    return { success: true, data: { workLogs: list } };
+  },
 };
 
 export const mockApiClient: ApiClient = {
@@ -360,4 +607,9 @@ export const mockApiClient: ApiClient = {
   campaigns: campaignsApi,
   customerLevels: customerLevelsApi,
   transactions: transactionsApi,
+  users: usersApi,
+  roles: rolesApi,
+  tasks: tasksApi,
+  projects: projectsApi,
+  workLogs: workLogsApi,
 };

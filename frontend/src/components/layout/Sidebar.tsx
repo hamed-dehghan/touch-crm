@@ -5,15 +5,22 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSidebarStore } from '@/store/sidebarStore';
 
-const navItems: { href: string; label: string; icon: 'home' | 'users' | 'cart' | 'box' | 'tag' | 'megaphone' | 'receipt' | 'levels' }[] = [
+type IconName = 'home' | 'users' | 'cart' | 'box' | 'tag' | 'megaphone' | 'receipt' | 'levels' | 'tasks' | 'projects' | 'worklogs' | 'settings' | 'shield';
+
+const navItems: { href: string; label: string; icon: IconName }[] = [
   { href: '/', label: 'نگاه کلی', icon: 'home' },
-  { href: '/customers', label: 'سطح کاربران', icon: 'users' },
+  { href: '/customers', label: 'مشتریان', icon: 'users' },
   { href: '/orders', label: 'سفارشات', icon: 'cart' },
   { href: '/products', label: 'محصولات', icon: 'box' },
+  { href: '/transactions', label: 'تراکنش‌ها', icon: 'receipt' },
   { href: '/promotions', label: 'تخفیف‌ها', icon: 'tag' },
   { href: '/campaigns', label: 'کمپین‌ها', icon: 'megaphone' },
-  { href: '/transactions', label: 'تراکنش‌ها', icon: 'receipt' },
+  { href: '/projects', label: 'پروژه‌ها', icon: 'projects' },
+  { href: '/tasks', label: 'وظایف', icon: 'tasks' },
+  { href: '/worklogs', label: 'گزارش کار', icon: 'worklogs' },
   { href: '/settings/levels', label: 'سطوح وفاداری', icon: 'levels' },
+  { href: '/settings/users', label: 'کاربران', icon: 'settings' },
+  { href: '/settings/roles', label: 'نقش‌ها', icon: 'shield' },
 ];
 
 function NavIcon({
@@ -21,7 +28,7 @@ function NavIcon({
   className,
   active,
 }: {
-  name: (typeof navItems)[number]['icon'];
+  name: IconName;
   className?: string;
   active?: boolean;
 }) {
@@ -84,6 +91,39 @@ function NavIcon({
       return (
         <svg className={`${w} ${cls}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+        </svg>
+      );
+    case 'tasks':
+      return (
+        <svg className={`${w} ${cls}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M9 11l3 3L22 4" />
+          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+        </svg>
+      );
+    case 'projects':
+      return (
+        <svg className={`${w} ${cls}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+        </svg>
+      );
+    case 'worklogs':
+      return (
+        <svg className={`${w} ${cls}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 6v6l4 2" />
+        </svg>
+      );
+    case 'settings':
+      return (
+        <svg className={`${w} ${cls}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+        </svg>
+      );
+    case 'shield':
+      return (
+        <svg className={`${w} ${cls}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         </svg>
       );
     default:

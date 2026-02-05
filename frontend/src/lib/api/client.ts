@@ -16,6 +16,11 @@ import type {
   Promotion,
   CustomerPromotion,
   Campaign,
+  Role,
+  Permission,
+  Task,
+  Project,
+  WorkLog,
 } from '@/types/api';
 
 export interface ListParams {
@@ -82,6 +87,47 @@ export interface CustomerLevelsApi {
 export interface TransactionsApi {
   list(params?: ListParams): Promise<ApiResponse<{ transactions: Transaction[]; pagination: Pagination }>>;
   getById(id: number): Promise<ApiResponse<{ transaction: Transaction }>>;
+  create(body: { customerId: number; orderId?: number; paymentMethod: string; amount: number; transactionDate: string }): Promise<ApiResponse<{ transaction: Transaction }>>;
+}
+
+export interface UsersApi {
+  list(): Promise<ApiResponse<{ users: User[] }>>;
+  create(body: { username: string; password: string; fullName?: string; email?: string; roleId: number }): Promise<ApiResponse<{ user: User }>>;
+  update(id: number, body: Partial<User & { isActive: boolean }>): Promise<ApiResponse<{ user: User }>>;
+  delete(id: number): Promise<ApiResponse<Record<string, never>>>;
+}
+
+export interface RolesApi {
+  list(): Promise<ApiResponse<{ roles: (Role & { permissionCount: number; permissions?: Permission[] })[] }>>;
+  getById(id: number): Promise<ApiResponse<{ role: Role & { permissions?: Permission[] } }>>;
+  create(body: { roleName: string; description?: string }): Promise<ApiResponse<{ role: Role }>>;
+  update(id: number, body: Partial<Role>): Promise<ApiResponse<{ role: Role }>>;
+  delete(id: number): Promise<ApiResponse<Record<string, never>>>;
+  getPermissions(): Promise<ApiResponse<{ permissions: Permission[] }>>;
+  assignPermissions(id: number, permissionIds: number[]): Promise<ApiResponse<{ role: Role & { permissions?: Permission[] } }>>;
+  removePermission(roleId: number, permissionId: number): Promise<ApiResponse<Record<string, never>>>;
+}
+
+export interface TasksApi {
+  list(params?: { projectId?: number; status?: string }): Promise<ApiResponse<{ tasks: Task[] }>>;
+  getMyTasks(): Promise<ApiResponse<{ tasks: Task[] }>>;
+  getById(id: number): Promise<ApiResponse<{ task: Task }>>;
+  create(body: Partial<Task>): Promise<ApiResponse<{ task: Task }>>;
+  update(id: number, body: Partial<Task>): Promise<ApiResponse<{ task: Task }>>;
+  updateStatus(id: number, status: string): Promise<ApiResponse<{ task: Task }>>;
+}
+
+export interface ProjectsApi {
+  list(params?: { customerId?: number }): Promise<ApiResponse<{ projects: Project[] }>>;
+  getById(id: number): Promise<ApiResponse<{ project: Project }>>;
+  create(body: Partial<Project>): Promise<ApiResponse<{ project: Project }>>;
+  update(id: number, body: Partial<Project>): Promise<ApiResponse<{ project: Project }>>;
+}
+
+export interface WorkLogsApi {
+  list(params?: { userId?: number; customerId?: number; taskId?: number }): Promise<ApiResponse<{ workLogs: WorkLog[] }>>;
+  create(body: { customerId?: number; taskId?: number; logDate: string; durationMinutes?: number; description: string; result: string }): Promise<ApiResponse<{ workLog: WorkLog }>>;
+  getByCustomer(customerId: number): Promise<ApiResponse<{ workLogs: WorkLog[] }>>;
 }
 
 export interface ApiClient {
@@ -93,4 +139,9 @@ export interface ApiClient {
   campaigns: CampaignsApi;
   customerLevels: CustomerLevelsApi;
   transactions: TransactionsApi;
+  users: UsersApi;
+  roles: RolesApi;
+  tasks: TasksApi;
+  projects: ProjectsApi;
+  workLogs: WorkLogsApi;
 }
