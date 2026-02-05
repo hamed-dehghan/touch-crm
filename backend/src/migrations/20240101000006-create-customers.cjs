@@ -1,5 +1,6 @@
-// backend/src/migrations/20240101000006-create-customers.js
-export default {
+'use strict';
+
+module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('customers', {
       id: {

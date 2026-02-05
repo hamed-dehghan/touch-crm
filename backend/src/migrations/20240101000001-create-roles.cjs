@@ -1,28 +1,17 @@
-// backend/src/migrations/20240101000007-create-projects.js
-export default {
+'use strict';
+
+module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('projects', {
+    await queryInterface.createTable('roles', {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
         autoIncrement: true,
       },
-      project_name: {
-        type: Sequelize.STRING(255),
+      role_name: {
+        type: Sequelize.STRING(100),
         allowNull: false,
-      },
-      customer_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'customers',
-          key: 'id',
-        },
-      },
-      status: {
-        type: Sequelize.ENUM('OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'),
-        allowNull: false,
-        defaultValue: 'OPEN',
+        unique: true,
       },
       description: {
         type: Sequelize.TEXT,
@@ -42,6 +31,6 @@ export default {
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable('projects');
+    await queryInterface.dropTable('roles');
   },
 };

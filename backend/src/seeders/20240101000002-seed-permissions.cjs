@@ -1,5 +1,6 @@
-// backend/src/seeders/20240101000002-seed-permissions.js
-export default {
+'use strict';
+
+module.exports = {
   async up(queryInterface) {
     const permissions = [
       // Customer permissions

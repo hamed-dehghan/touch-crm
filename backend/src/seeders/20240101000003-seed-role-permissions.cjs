@@ -1,5 +1,6 @@
-// backend/src/seeders/20240101000003-seed-role-permissions.js
-export default {
+'use strict';
+
+module.exports = {
   async up(queryInterface) {
     // Get role IDs
     const [roles] = await queryInterface.sequelize.query(

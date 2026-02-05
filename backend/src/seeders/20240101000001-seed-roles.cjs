@@ -1,5 +1,6 @@
-// backend/src/seeders/20240101000001-seed-roles.js
-export default {
+'use strict';
+
+module.exports = {
   async up(queryInterface) {
     await queryInterface.bulkInsert('roles', [
       {

@@ -1,41 +1,41 @@
-// backend/src/migrations/20240101000004-create-users.js
-export default {
+'use strict';
+
+module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('users', {
+    await queryInterface.createTable('campaigns', {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
         autoIncrement: true,
       },
-      username: {
-        type: Sequelize.STRING(100),
-        allowNull: false,
-        unique: true,
-      },
-      password_hash: {
+      name: {
         type: Sequelize.STRING(255),
         allowNull: false,
       },
-      full_name: {
-        type: Sequelize.STRING(150),
+      message_template: {
+        type: Sequelize.TEXT,
+        allowNull: false,
+      },
+      filter_conditions_json: {
+        type: Sequelize.TEXT,
         allowNull: true,
       },
-      email: {
-        type: Sequelize.STRING(150),
+      scheduled_send_time: {
+        type: Sequelize.DATE,
         allowNull: true,
-        unique: true,
       },
-      role_id: {
+      status: {
+        type: Sequelize.ENUM('DRAFT', 'SCHEDULED', 'SENT', 'CANCELLED'),
+        allowNull: false,
+        defaultValue: 'DRAFT',
+      },
+      created_by_user_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'roles',
+          model: 'users',
           key: 'id',
         },
-      },
-      is_active: {
-        type: Sequelize.BOOLEAN,
-        defaultValue: true,
       },
       created_at: {
         type: Sequelize.DATE,
@@ -51,6 +51,6 @@ export default {
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable('users');
+    await queryInterface.dropTable('campaigns');
   },
 };

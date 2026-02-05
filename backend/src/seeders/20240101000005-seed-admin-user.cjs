@@ -1,7 +1,8 @@
-// backend/src/seeders/20240101000005-seed-admin-user.js
-import bcrypt from 'bcryptjs';
+'use strict';
 
-export default {
+const bcrypt = require('bcryptjs');
+
+module.exports = {
   async up(queryInterface) {
     // Get Administrator role ID
     const [roles] = await queryInterface.sequelize.query(

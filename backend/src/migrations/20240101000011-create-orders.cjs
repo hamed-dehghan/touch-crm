@@ -1,7 +1,8 @@
-// backend/src/migrations/20240101000015-create-customer-promotions.js
-export default {
+'use strict';
+
+module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('customer_promotions', {
+    await queryInterface.createTable('orders', {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
@@ -15,30 +16,36 @@ export default {
           key: 'id',
         },
       },
-      promotion_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'promotions',
-          key: 'id',
-        },
-      },
-      assigned_at: {
+      order_date: {
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
-      expiry_date: {
-        type: Sequelize.DATEONLY,
-        allowNull: true,
+      total_amount: {
+        type: Sequelize.DECIMAL(12, 2),
+        allowNull: false,
       },
-      is_used: {
-        type: Sequelize.BOOLEAN,
-        defaultValue: false,
+      discount_amount: {
+        type: Sequelize.DECIMAL(12, 2),
+        allowNull: false,
+        defaultValue: 0,
       },
-      used_at: {
-        type: Sequelize.DATE,
-        allowNull: true,
+      tax_amount: {
+        type: Sequelize.DECIMAL(12, 2),
+        allowNull: false,
+        defaultValue: 0,
+      },
+      final_amount: {
+        type: Sequelize.DECIMAL(12, 2),
+        allowNull: false,
+      },
+      created_by_user_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'users',
+          key: 'id',
+        },
       },
       created_at: {
         type: Sequelize.DATE,
@@ -54,6 +61,6 @@ export default {
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable('customer_promotions');
+    await queryInterface.dropTable('orders');
   },
 };

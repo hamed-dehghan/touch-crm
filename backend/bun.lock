@@ -32,7 +32,7 @@
         "@typescript-eslint/parser": "^6.17.0",
         "eslint": "^8.56.0",
         "prettier": "^3.1.1",
-        "sequelize-cli": "^6.6.2",
+        "sequelize-cli": "^6.6.5",
         "tsx": "^4.7.0",
         "typescript": "^5.3.3",
       },
@@ -631,7 +631,7 @@
 
     "sequelize": ["sequelize@6.37.7", "", { "dependencies": { "@types/debug": "^4.1.8", "@types/validator": "^13.7.17", "debug": "^4.3.4", "dottie": "^2.0.6", "inflection": "^1.13.4", "lodash": "^4.17.21", "moment": "^2.29.4", "moment-timezone": "^0.5.43", "pg-connection-string": "^2.6.1", "retry-as-promised": "^7.0.4", "semver": "^7.5.4", "sequelize-pool": "^7.1.0", "toposort-class": "^1.0.1", "uuid": "^8.3.2", "validator": "^13.9.0", "wkx": "^0.5.0" } }, "sha512-mCnh83zuz7kQxxJirtFD7q6Huy6liPanI67BSlbzSYgVNl5eXVdE2CN1FuAeZwG1SNpGsNRCV+bJAVVnykZAFA=="],
 
-    "sequelize-cli": ["sequelize-cli@6.6.3", "", { "dependencies": { "fs-extra": "^9.1.0", "js-beautify": "1.15.4", "lodash": "^4.17.21", "picocolors": "^1.1.1", "resolve": "^1.22.1", "umzug": "^2.3.0", "yargs": "^16.2.0" }, "bin": { "sequelize": "lib/sequelize", "sequelize-cli": "lib/sequelize" } }, "sha512-1YYPrcSRt/bpMDDSKM5ubY1mnJ2TEwIaGZcqITw4hLtGtE64nIqaBnLtMvH8VKHg6FbWpXTiFNc2mS/BtQCXZw=="],
+    "sequelize-cli": ["sequelize-cli@6.6.5", "", { "dependencies": { "fs-extra": "^9.1.0", "js-beautify": "1.15.4", "lodash": "^4.17.21", "picocolors": "^1.1.1", "resolve": "^1.22.1", "umzug": "^2.3.0", "yargs": "^16.2.0" }, "bin": { "sequelize": "lib/sequelize", "sequelize-cli": "lib/sequelize" } }, "sha512-DqyISCULOaEbTM+rRQH4YvcUWeOC1XDiSKcjsC6TfAnT7W837mNkChJhtB/Z4FdCFHRCojmiP7zsrA4pARmacA=="],
 
     "sequelize-pool": ["sequelize-pool@7.1.0", "", {}, "sha512-G9c0qlIWQSK29pR/5U2JF5dDQeqqHRragoyahj/Nx4KOOQ3CPPfzxnfqFPCSB7x5UgjOgnZ61nSxz+fjDpRlJg=="],
 

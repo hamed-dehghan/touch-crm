@@ -1,24 +1,25 @@
-// backend/src/migrations/20240101000005-create-customer-levels.js
-export default {
+'use strict';
+
+module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('customer_levels', {
+    await queryInterface.createTable('products', {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
         autoIncrement: true,
       },
-      level_name: {
-        type: Sequelize.STRING(50),
-        allowNull: false,
-        unique: true,
-      },
-      min_score: {
-        type: Sequelize.DECIMAL(5, 2),
+      product_name: {
+        type: Sequelize.STRING(255),
         allowNull: false,
       },
-      max_score: {
+      price: {
+        type: Sequelize.DECIMAL(12, 2),
+        allowNull: false,
+      },
+      tax_rate: {
         type: Sequelize.DECIMAL(5, 2),
         allowNull: false,
+        defaultValue: 0,
       },
       created_at: {
         type: Sequelize.DATE,
@@ -34,6 +35,6 @@ export default {
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable('customer_levels');
+    await queryInterface.dropTable('products');
   },
 };

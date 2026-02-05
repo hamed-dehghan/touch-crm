@@ -1,50 +1,36 @@
-// backend/src/migrations/20240101000009-create-work-logs.js
-export default {
+'use strict';
+
+module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('work_logs', {
+    await queryInterface.createTable('order_items', {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
         autoIncrement: true,
       },
-      user_id: {
+      order_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'users',
+          model: 'orders',
           key: 'id',
         },
       },
-      customer_id: {
+      product_id: {
         type: Sequelize.INTEGER,
-        allowNull: true,
-        references: {
-          model: 'customers',
-          key: 'id',
-        },
-      },
-      task_id: {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-        references: {
-          model: 'tasks',
-          key: 'id',
-        },
-      },
-      log_date: {
-        type: Sequelize.DATEONLY,
         allowNull: false,
+        references: {
+          model: 'products',
+          key: 'id',
+        },
       },
-      duration_minutes: {
+      quantity: {
         type: Sequelize.INTEGER,
-        allowNull: true,
-      },
-      description: {
-        type: Sequelize.TEXT,
         allowNull: false,
+        defaultValue: 1,
       },
-      result: {
-        type: Sequelize.TEXT,
+      price_per_unit: {
+        type: Sequelize.DECIMAL(12, 2),
         allowNull: false,
       },
       created_at: {
@@ -61,6 +47,6 @@ export default {
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable('work_logs');
+    await queryInterface.dropTable('order_items');
   },
 };

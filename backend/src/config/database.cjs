@@ -1,10 +1,4 @@
-// backend/src/db/connection.js
-import { Sequelize } from 'sequelize';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const env = process.env.NODE_ENV || 'development';
+require('dotenv').config();
 
 const config = {
   development: {
@@ -36,19 +30,4 @@ const config = {
   },
 };
 
-const dbConfig = config[env];
-
-const sequelize = new Sequelize(
-  dbConfig.database,
-  dbConfig.username,
-  dbConfig.password,
-  {
-    host: dbConfig.host,
-    port: dbConfig.port,
-    dialect: dbConfig.dialect,
-    logging: dbConfig.logging,
-  }
-);
-
-export default sequelize;
-export { config, dbConfig };
+module.exports = config;

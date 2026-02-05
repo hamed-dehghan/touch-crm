@@ -1,5 +1,6 @@
-// backend/src/seeders/20240101000006-seed-sample-products.js
-export default {
+'use strict';
+
+module.exports = {
   async up(queryInterface) {
     await queryInterface.bulkInsert('products', [
       {

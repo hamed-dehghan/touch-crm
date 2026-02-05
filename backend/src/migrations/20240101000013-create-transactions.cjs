@@ -1,24 +1,40 @@
-// backend/src/migrations/20240101000010-create-products.js
-export default {
+'use strict';
+
+module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('products', {
+    await queryInterface.createTable('transactions', {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
         autoIncrement: true,
       },
-      product_name: {
-        type: Sequelize.STRING(255),
+      order_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'orders',
+          key: 'id',
+        },
+      },
+      customer_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'customers',
+          key: 'id',
+        },
+      },
+      payment_method: {
+        type: Sequelize.ENUM('CASH', 'CHECK'),
         allowNull: false,
       },
-      price: {
+      amount: {
         type: Sequelize.DECIMAL(12, 2),
         allowNull: false,
       },
-      tax_rate: {
-        type: Sequelize.DECIMAL(5, 2),
+      transaction_date: {
+        type: Sequelize.DATEONLY,
         allowNull: false,
-        defaultValue: 0,
       },
       created_at: {
         type: Sequelize.DATE,
@@ -34,6 +50,6 @@ export default {
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable('products');
+    await queryInterface.dropTable('transactions');
   },
 };

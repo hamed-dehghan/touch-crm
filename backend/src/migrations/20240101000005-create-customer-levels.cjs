@@ -1,20 +1,25 @@
-// backend/src/migrations/20240101000001-create-roles.js
-export default {
+'use strict';
+
+module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('roles', {
+    await queryInterface.createTable('customer_levels', {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
         autoIncrement: true,
       },
-      role_name: {
-        type: Sequelize.STRING(100),
+      level_name: {
+        type: Sequelize.STRING(50),
         allowNull: false,
         unique: true,
       },
-      description: {
-        type: Sequelize.TEXT,
-        allowNull: true,
+      min_score: {
+        type: Sequelize.DECIMAL(5, 2),
+        allowNull: false,
+      },
+      max_score: {
+        type: Sequelize.DECIMAL(5, 2),
+        allowNull: false,
       },
       created_at: {
         type: Sequelize.DATE,
@@ -30,6 +35,6 @@ export default {
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable('roles');
+    await queryInterface.dropTable('customer_levels');
   },
 };
