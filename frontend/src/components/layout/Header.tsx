@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useSidebarStore } from '@/store/sidebarStore';
 import { Button } from '@/components/ui/Button';
+import { LogoIcon } from '@/components/Logo';
 
 function MenuIcon({ className }: { className?: string }) {
   return (
@@ -34,7 +35,10 @@ export function Header() {
         >
           <MenuIcon className="w-6 h-6" />
         </button>
-        <span className="text-sm text-foreground/70">پنل مدیریت</span>
+        <div className="flex items-center gap-2">
+          <LogoIcon width={32} height={44} className="w-8 h-auto shrink-0" />
+          <span className="text-lg font-bold text-foreground">باشگاه مشتریان</span>
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <span className="text-sm text-foreground hidden sm:inline">{user?.fullName ?? user?.username ?? ''}</span>

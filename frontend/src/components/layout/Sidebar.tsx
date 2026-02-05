@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogoIcon } from '@/components/Logo';
 import { useSidebarStore } from '@/store/sidebarStore';
 
 const navItems: { href: string; label: string; icon: 'home' | 'users' | 'cart' | 'box' | 'tag' | 'megaphone' | 'receipt' | 'levels' }[] = [
@@ -105,13 +104,7 @@ function SidebarContent({
 
   return (
     <>
-      <div className={`p-4 border-b border-[var(--color-border)] flex items-center min-w-0 ${isCollapsed ? 'justify-center' : 'gap-2'}`}>
-        <LogoIcon width={32} height={44} className="w-8 h-auto shrink-0" />
-        {!isCollapsed && (
-          <span className="text-lg font-bold text-foreground truncate">باشگاه مشتریان</span>
-        )}
-      </div>
-      <nav className="p-2 flex-1 overflow-hidden">
+      <nav className="p-2 flex-1 overflow-y-auto">
         <ul className="space-y-0.5">
           {navItems.map((item) => {
             const isActive =
@@ -190,7 +183,7 @@ export function Sidebar() {
         }`}
       >
         <SidebarContent collapsed={collapsed} showLabels={!collapsed} pathname={pathname} />
-        <div className="p-2 border-t border-[var(--color-border)]">
+        <div className="p-2 border-t border-[var(--color-border)] mt-auto shrink-0">
           <ToggleButton collapsed={collapsed} />
         </div>
       </aside>
