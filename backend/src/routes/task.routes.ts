@@ -6,11 +6,11 @@ import {
   getTaskById,
   updateTaskStatus,
   updateTask,
-} from '../controllers/task.controller';
-import { authenticate } from '../middlewares/auth.middleware';
-import { requireAnyPermission, requirePermission } from '../middlewares/rbac.middleware';
+} from '../controllers/task.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { requireAnyPermission, requirePermission } from '../middlewares/rbac.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @swagger

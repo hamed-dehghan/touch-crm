@@ -1,5 +1,5 @@
 import * as yup from 'yup';
-import { PaymentMethod } from '../models/Transaction';
+import { PaymentMethod } from '../models/Transaction.js';
 
 export const createTransactionSchema = yup.object({
   customerId: yup.number().required('Customer ID is required').positive().integer(),

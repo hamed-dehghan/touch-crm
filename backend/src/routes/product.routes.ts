@@ -5,10 +5,10 @@ import {
   getProductById,
   updateProduct,
   deleteProduct,
-} from '../controllers/product.controller';
-import { authenticate } from '../middlewares/auth.middleware';
+} from '../controllers/product.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @swagger

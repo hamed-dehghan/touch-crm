@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import Task, { TaskStatus } from '../models/Task';
-import Project from '../models/Project';
-import User from '../models/User';
-import { NotFoundError, ValidationError } from '../utils/errors';
+import Task, { TaskStatus } from '../models/Task.js';
+import Project from '../models/Project.js';
+import User from '../models/User.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 /**
  * @swagger

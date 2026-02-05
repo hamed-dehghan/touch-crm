@@ -1,18 +1,18 @@
 import { Router } from 'express';
-import authRoutes from './auth.routes';
-import customerRoutes from './customer.routes';
-import productRoutes from './product.routes';
-import userRoutes from './user.routes';
-import roleRoutes from './role.routes';
-import orderRoutes from './order.routes';
-import promotionRoutes from './promotion.routes';
-import campaignRoutes from './campaign.routes';
-import projectRoutes from './project.routes';
-import taskRoutes from './task.routes';
-import worklogRoutes from './worklog.routes';
-import transactionRoutes from './transaction.routes';
+import authRoutes from './auth.routes.js';
+import customerRoutes from './customer.routes.js';
+import productRoutes from './product.routes.js';
+import userRoutes from './user.routes.js';
+import roleRoutes from './role.routes.js';
+import orderRoutes from './order.routes.js';
+import promotionRoutes from './promotion.routes.js';
+import campaignRoutes from './campaign.routes.js';
+import projectRoutes from './project.routes.js';
+import taskRoutes from './task.routes.js';
+import worklogRoutes from './worklog.routes.js';
+import transactionRoutes from './transaction.routes.js';
 
-const router = Router();
+const router: Router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/customers', customerRoutes);

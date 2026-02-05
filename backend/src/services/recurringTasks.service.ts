@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import Task, { TaskStatus } from '../models/Task';
+import Task, { TaskStatus } from '../models/Task.js';
 
 /**
  * Process recurring tasks - duplicate tasks when interval has passed

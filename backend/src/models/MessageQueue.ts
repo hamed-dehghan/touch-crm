@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../config/database';
+import sequelize from '../config/database.js';
 
 export enum MessageStatus {
   PENDING = 'PENDING',
@@ -28,17 +28,17 @@ class MessageQueue
   extends Model<MessageQueueAttributes, MessageQueueCreationAttributes>
   implements MessageQueueAttributes
 {
-  public id!: number;
-  public customerId?: number;
-  public phoneNumber!: string;
-  public messageText!: string;
-  public status!: MessageStatus;
-  public scheduledFor?: Date;
-  public sentAt?: Date;
-  public errorMessage?: string;
-  public retryCount!: number;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare customerId?: number;
+  declare phoneNumber: string;
+  declare messageText: string;
+  declare status: MessageStatus;
+  declare scheduledFor?: Date;
+  declare sentAt?: Date;
+  declare errorMessage?: string;
+  declare retryCount: number;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 MessageQueue.init(

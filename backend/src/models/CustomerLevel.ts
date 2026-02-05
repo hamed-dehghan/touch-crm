@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../config/database';
+import sequelize from '../config/database.js';
 
 interface CustomerLevelAttributes {
   id: number;
@@ -17,12 +17,12 @@ class CustomerLevel
   extends Model<CustomerLevelAttributes, CustomerLevelCreationAttributes>
   implements CustomerLevelAttributes
 {
-  public id!: number;
-  public levelName!: string;
-  public minScore!: number;
-  public maxScore!: number;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare levelName: string;
+  declare minScore: number;
+  declare maxScore: number;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 CustomerLevel.init(

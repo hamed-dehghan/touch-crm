@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import Order from '../models/Order';
-import OrderItem from '../models/OrderItem';
-import Customer from '../models/Customer';
-import Product from '../models/Product';
-import { NotFoundError, ValidationError } from '../utils/errors';
+import Order from '../models/Order.js';
+import OrderItem from '../models/OrderItem.js';
+import Customer from '../models/Customer.js';
+import Product from '../models/Product.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 /**
  * Create a new order with order items

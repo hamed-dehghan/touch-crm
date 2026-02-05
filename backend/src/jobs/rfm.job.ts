@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { processAllCustomersRFM } from '../services/rfm.service';
+import { processAllCustomersRFM } from '../services/rfm.service.js';
 
 /**
  * RFM Scoring Job

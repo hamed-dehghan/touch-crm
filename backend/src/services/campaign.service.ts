@@ -1,9 +1,9 @@
 import { Op } from 'sequelize';
-import Campaign, { CampaignStatus } from '../models/Campaign';
-import Customer from '../models/Customer';
-import CustomerLevel from '../models/CustomerLevel';
-import MessageQueue, { MessageStatus } from '../models/MessageQueue';
-import Order from '../models/Order';
+import Campaign, { CampaignStatus } from '../models/Campaign.js';
+import Customer from '../models/Customer.js';
+import CustomerLevel from '../models/CustomerLevel.js';
+import MessageQueue, { MessageStatus } from '../models/MessageQueue.js';
+import Order from '../models/Order.js';
 
 /**
  * Campaign Service
@@ -106,9 +106,7 @@ const renderMessageTemplate = (template: string, customer: Customer): string => 
  * Execute a campaign - filter customers and populate message queue
  */
 export const executeCampaign = async (campaignId: number): Promise<number> => {
-  const campaign = await Campaign.findByPk(campaignId, {
-    include: [{ model: CustomerLevel, as: 'customerLevel' }],
-  });
+  const campaign = await Campaign.findByPk(campaignId);
 
   if (!campaign) {
     throw new Error('Campaign not found');

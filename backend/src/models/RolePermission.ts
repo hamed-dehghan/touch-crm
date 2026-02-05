@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../config/database';
+import sequelize from '../config/database.js';
 
 interface RolePermissionAttributes {
   roleId: number;
@@ -14,9 +14,9 @@ class RolePermission
   extends Model<RolePermissionAttributes, RolePermissionCreationAttributes>
   implements RolePermissionAttributes
 {
-  public roleId!: number;
-  public permissionId!: number;
-  public readonly createdAt!: Date;
+  declare roleId: number;
+  declare permissionId: number;
+  declare readonly createdAt: Date;
 }
 
 RolePermission.init(

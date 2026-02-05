@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import User from '../models/User';
-import Role from '../models/Role';
-import { NotFoundError, ValidationError } from '../utils/errors';
-import { hashPassword } from '../utils/password';
-import { registerSchema } from '../validations/auth.validation';
+import User from '../models/User.js';
+import Role from '../models/Role.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
+import { hashPassword } from '../utils/password.js';
+import { registerSchema } from '../validations/auth.validation.js';
 
 /**
  * @swagger

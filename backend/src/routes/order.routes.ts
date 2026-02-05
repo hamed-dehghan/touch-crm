@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { createOrder, getOrders, getOrderById } from '../controllers/order.controller';
-import { authenticate } from '../middlewares/auth.middleware';
-import { requirePermission } from '../middlewares/rbac.middleware';
-import { validate } from '../middlewares/validation.middleware';
-import { createOrderSchema } from '../validations/order.validation';
+import { createOrder, getOrders, getOrderById } from '../controllers/order.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { requirePermission } from '../middlewares/rbac.middleware.js';
+import { validate } from '../middlewares/validation.middleware.js';
+import { createOrderSchema } from '../validations/order.validation.js';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @swagger

@@ -1,5 +1,5 @@
 import * as yup from 'yup';
-import { CustomerStatus, CustomerType } from '../models/Customer';
+import { CustomerStatus, CustomerType } from '../models/Customer.js';
 
 export const createCustomerSchema = yup.object().shape({
   firstName: yup.string().max(100),

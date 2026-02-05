@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../config/database';
+import sequelize from '../config/database.js';
 
 export enum ProjectStatus {
   OPEN = 'OPEN',
@@ -25,13 +25,13 @@ class Project
   extends Model<ProjectAttributes, ProjectCreationAttributes>
   implements ProjectAttributes
 {
-  public id!: number;
-  public projectName!: string;
-  public customerId!: number;
-  public status!: ProjectStatus;
-  public description?: string;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare projectName: string;
+  declare customerId: number;
+  declare status: ProjectStatus;
+  declare description?: string;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 Project.init(

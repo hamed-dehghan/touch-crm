@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import WorkLog from '../models/WorkLog';
-import Customer from '../models/Customer';
-import Task from '../models/Task';
-import User from '../models/User';
-import { NotFoundError, ValidationError } from '../utils/errors';
+import WorkLog from '../models/WorkLog.js';
+import Customer from '../models/Customer.js';
+import Task from '../models/Task.js';
+import User from '../models/User.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 /**
  * @swagger
@@ -86,7 +86,7 @@ export const createWorkLog = async (
 
     const createdWorkLog = await WorkLog.findByPk(workLog.id, {
       include: [
-        { model: User, as: 'user', attributes: ['id', 'username', 'fullName'] },
+        { model: User, as: 'loggedBy', attributes: ['id', 'username', 'fullName'] },
         { model: Customer, as: 'customer', attributes: ['id', 'firstName', 'lastName'] },
         { model: Task, as: 'task', attributes: ['id', 'title'] },
       ],
@@ -150,7 +150,7 @@ export const getWorkLogs = async (
     const workLogs = await WorkLog.findAll({
       where,
       include: [
-        { model: User, as: 'user', attributes: ['id', 'username', 'fullName'] },
+        { model: User, as: 'loggedBy', attributes: ['id', 'username', 'fullName'] },
         { model: Customer, as: 'customer', attributes: ['id', 'firstName', 'lastName'] },
         { model: Task, as: 'task', attributes: ['id', 'title'] },
       ],
@@ -202,7 +202,7 @@ export const getCustomerWorkLogs = async (
     const workLogs = await WorkLog.findAll({
       where: { customerId: id },
       include: [
-        { model: User, as: 'user', attributes: ['id', 'username', 'fullName'] },
+        { model: User, as: 'loggedBy', attributes: ['id', 'username', 'fullName'] },
         { model: Task, as: 'task', attributes: ['id', 'title'] },
       ],
       order: [['logDate', 'DESC']],

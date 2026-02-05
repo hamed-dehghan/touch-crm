@@ -1,8 +1,8 @@
 import { Op } from 'sequelize';
-import Customer from '../models/Customer';
-import CustomerLevel from '../models/CustomerLevel';
-import Order from '../models/Order';
-import { checkPromotionsAfterLevelChange } from '../services/promotionEvents.service';
+import Customer from '../models/Customer.js';
+import CustomerLevel from '../models/CustomerLevel.js';
+import Order from '../models/Order.js';
+import { checkPromotionsAfterLevelChange } from '../services/promotionEvents.service.js';
 import dotenv from 'dotenv';
 
 dotenv.config();

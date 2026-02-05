@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../config/database';
+import sequelize from '../config/database.js';
 
 export enum TaskStatus {
   PENDING = 'PENDING',
@@ -28,19 +28,19 @@ interface TaskCreationAttributes
   extends Optional<TaskAttributes, 'id' | 'status' | 'isRecurring' | 'createdAt' | 'updatedAt'> {}
 
 class Task extends Model<TaskAttributes, TaskCreationAttributes> implements TaskAttributes {
-  public id!: number;
-  public title!: string;
-  public description?: string;
-  public projectId?: number;
-  public assignedToUserId!: number;
-  public createdByUserId!: number;
-  public dueDate?: Date;
-  public status!: TaskStatus;
-  public isRecurring!: boolean;
-  public recurringIntervalDays?: number;
-  public lastTriggeredAt?: Date;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare title: string;
+  declare description?: string;
+  declare projectId?: number;
+  declare assignedToUserId: number;
+  declare createdByUserId: number;
+  declare dueDate?: Date;
+  declare status: TaskStatus;
+  declare isRecurring: boolean;
+  declare recurringIntervalDays?: number;
+  declare lastTriggeredAt?: Date;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 Task.init(

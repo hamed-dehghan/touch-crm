@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../config/database';
+import sequelize from '../config/database.js';
 
 interface OrderAttributes {
   id: number;
@@ -18,16 +18,16 @@ interface OrderCreationAttributes
   extends Optional<OrderAttributes, 'id' | 'orderDate' | 'discountAmount' | 'taxAmount' | 'finalAmount' | 'createdByUserId' | 'createdAt' | 'updatedAt'> {}
 
 class Order extends Model<OrderAttributes, OrderCreationAttributes> implements OrderAttributes {
-  public id!: number;
-  public customerId!: number;
-  public orderDate!: Date;
-  public totalAmount!: number;
-  public discountAmount!: number;
-  public taxAmount!: number;
-  public finalAmount!: number;
-  public createdByUserId!: number;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare customerId: number;
+  declare orderDate: Date;
+  declare totalAmount: number;
+  declare discountAmount: number;
+  declare taxAmount: number;
+  declare finalAmount: number;
+  declare createdByUserId: number;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 Order.init(

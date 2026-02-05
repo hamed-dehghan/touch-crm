@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../config/database';
+import sequelize from '../config/database.js';
 
 export enum PaymentMethod {
   CASH = 'CASH',
@@ -24,14 +24,14 @@ class Transaction
   extends Model<TransactionAttributes, TransactionCreationAttributes>
   implements TransactionAttributes
 {
-  public id!: number;
-  public orderId?: number;
-  public customerId!: number;
-  public paymentMethod!: PaymentMethod;
-  public amount!: number;
-  public transactionDate!: Date;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare orderId?: number;
+  declare customerId: number;
+  declare paymentMethod: PaymentMethod;
+  declare amount: number;
+  declare transactionDate: Date;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 Transaction.init(

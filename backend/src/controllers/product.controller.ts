@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import Product from '../models/Product';
-import { NotFoundError } from '../utils/errors';
-import { createProductSchema, updateProductSchema } from '../validations/product.validation';
+import Product from '../models/Product.js';
+import { NotFoundError } from '../utils/errors.js';
+import { createProductSchema, updateProductSchema } from '../validations/product.validation.js';
 
 /**
  * @swagger

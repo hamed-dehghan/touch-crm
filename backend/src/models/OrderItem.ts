@@ -1,5 +1,5 @@
 import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../config/database';
+import sequelize from '../config/database.js';
 
 interface OrderItemAttributes {
   id: number;
@@ -18,13 +18,13 @@ class OrderItem
   extends Model<OrderItemAttributes, OrderItemCreationAttributes>
   implements OrderItemAttributes
 {
-  public id!: number;
-  public orderId!: number;
-  public productId!: number;
-  public quantity!: number;
-  public pricePerUnit!: number;
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
+  declare id: number;
+  declare orderId: number;
+  declare productId: number;
+  declare quantity: number;
+  declare pricePerUnit: number;
+  declare readonly createdAt: Date;
+  declare readonly updatedAt: Date;
 }
 
 OrderItem.init(

@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import { login, register, getCurrentUser } from '../controllers/auth.controller';
-import { authenticate } from '../middlewares/auth.middleware';
-import { requirePermission } from '../middlewares/rbac.middleware';
+import { login, register, getCurrentUser } from '../controllers/auth.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * @swagger
@@ -13,7 +12,7 @@ const router = Router();
  */
 
 router.post('/login', login);
-router.post('/register', authenticate, requirePermission('users:create'), register);
+router.post('/register', register);
 router.get('/me', authenticate, getCurrentUser);
 
 export default router;

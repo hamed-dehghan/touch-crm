@@ -10,23 +10,23 @@
  * - belongsToMany: Many-to-many (with junction table)
  */
 
-import User from './User';
-import Role from './Role';
-import Permission from './Permission';
-import RolePermission from './RolePermission';
-import Customer from './Customer';
-import CustomerLevel from './CustomerLevel';
-import Order from './Order';
-import OrderItem from './OrderItem';
-import Product from './Product';
-import Transaction from './Transaction';
-import Promotion from './Promotion';
-import CustomerPromotion from './CustomerPromotion';
-import Campaign from './Campaign';
-import Project from './Project';
-import Task from './Task';
-import WorkLog from './WorkLog';
-import MessageQueue from './MessageQueue';
+import User from './User.js';
+import Role from './Role.js';
+import Permission from './Permission.js';
+import RolePermission from './RolePermission.js';
+import Customer from './Customer.js';
+import CustomerLevel from './CustomerLevel.js';
+import Order from './Order.js';
+import OrderItem from './OrderItem.js';
+import Product from './Product.js';
+import Transaction from './Transaction.js';
+import Promotion from './Promotion.js';
+import CustomerPromotion from './CustomerPromotion.js';
+import Campaign from './Campaign.js';
+import Project from './Project.js';
+import Task from './Task.js';
+import WorkLog from './WorkLog.js';
+import MessageQueue from './MessageQueue.js';
 
 /**
  * Define all model associations
@@ -224,11 +224,11 @@ export const initializeAssociations = (): void => {
 
   // WorkLog <-> User (logged by)
   WorkLog.belongsTo(User, {
-    foreignKey: 'loggedByUserId',
+    foreignKey: 'userId',
     as: 'loggedBy',
   });
   User.hasMany(WorkLog, {
-    foreignKey: 'loggedByUserId',
+    foreignKey: 'userId',
     as: 'workLogs',
   });
 

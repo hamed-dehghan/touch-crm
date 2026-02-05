@@ -3,9 +3,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import 'express-async-errors';
 import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec } from './config/swagger';
-import routes from './routes';
-import { errorHandler } from './middlewares/error.middleware';
+import { swaggerSpec } from './config/swagger.js';
+import routes from './routes/index.js';
+import { errorHandler } from './middlewares/error.middleware.js';
 
 /**
  * Create and configure Express application
