@@ -4,7 +4,7 @@
  */
 
 import type { ApiClient } from './client';
-import type { CustomerRfmResponse, RfmScores } from '@/types/api';
+import type { CustomerRfmResponse, Pagination, RfmScores } from '@/types/api';
 import {
   users,
   roles,

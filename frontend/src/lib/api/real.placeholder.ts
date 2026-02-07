@@ -22,4 +22,9 @@ export const realApiClient: ApiClient = {
   campaigns: {} as ApiClient['campaigns'],
   customerLevels: {} as ApiClient['customerLevels'],
   transactions: {} as ApiClient['transactions'],
+  users: {} as ApiClient['users'],
+  roles: {} as ApiClient['roles'],
+  tasks: {} as ApiClient['tasks'],
+  projects: {} as ApiClient['projects'],
+  workLogs: {} as ApiClient['workLogs'],
 };
