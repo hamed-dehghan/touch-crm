@@ -87,7 +87,7 @@ export default function ProjectsPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-1">مشتری *</label>
                 <select value={form.customerId} onChange={(e) => setForm((f) => ({ ...f, customerId: e.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
                   <option value="">-- انتخاب مشتری --</option>
-                  {customers.map((c) => <option key={c.id} value={c.id}>{[c.firstName, c.lastName].filter(Boolean).join(' ')} — {c.phoneNumber}</option>)}
+                  {customers.map((c) => <option key={c.id} value={c.id}>{[c.firstName, c.lastName].filter(Boolean).join(' ')} — {c.customerCode}</option>)}
                 </select>
               </div>
               <div>

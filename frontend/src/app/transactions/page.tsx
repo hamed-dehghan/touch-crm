@@ -73,7 +73,7 @@ export default function TransactionsPage() {
                 <select value={form.customerId} onChange={(e) => setForm((f) => ({ ...f, customerId: e.target.value, orderId: '' }))} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
                   <option value="">-- انتخاب کنید --</option>
                   {customers.map((c) => (
-                    <option key={c.id} value={c.id}>{[c.firstName, c.lastName].filter(Boolean).join(' ')} — {c.phoneNumber}</option>
+                    <option key={c.id} value={c.id}>{[c.firstName, c.lastName].filter(Boolean).join(' ')} — {c.customerCode}</option>
                   ))}
                 </select>
               </div>

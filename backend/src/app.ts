@@ -1,11 +1,14 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'path';
+import fs from 'fs';
 import 'express-async-errors';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger.js';
 import routes from './routes/index.js';
 import { errorHandler } from './middlewares/error.middleware.js';
+import { PROFILE_DIR, ATTACHMENTS_DIR } from './middlewares/upload.middleware.js';
 
 /**
  * Create and configure Express application
@@ -30,6 +33,16 @@ const createApp = (): Application => {
   // Body parsing middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Ensure upload directories exist
+  [PROFILE_DIR, ATTACHMENTS_DIR].forEach((dir) => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  });
+
+  // Serve uploaded files statically
+  app.use('/uploads', express.static(path.resolve('uploads')));
 
   // Health check endpoint
   app.get('/health', (_req, res) => {

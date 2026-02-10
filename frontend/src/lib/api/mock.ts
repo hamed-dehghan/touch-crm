@@ -58,6 +58,8 @@ const authApi: ApiClient['auth'] = {
   },
 };
 
+let mockCustomerCodeCounter = 5; // start after seeded data
+
 const customersApi: ApiClient['customers'] = {
   async list(params) {
     const { page = 1, limit = 20, search, status } = params || {};
@@ -67,8 +69,10 @@ const customersApi: ApiClient['customers'] = {
         (c) =>
           matchSearch(c.firstName ?? '', search) ||
           matchSearch(c.lastName ?? '', search) ||
-          matchSearch(c.phoneNumber, search) ||
-          matchSearch(c.email ?? '', search)
+          matchSearch(c.companyName ?? '', search) ||
+          matchSearch(c.brandName ?? '', search) ||
+          matchSearch(c.email ?? '', search) ||
+          matchSearch(c.customerCode ?? '', search)
       );
     }
     if (status) list = list.filter((c) => c.status === status);
@@ -81,28 +85,43 @@ const customersApi: ApiClient['customers'] = {
     return { success: true, data: { customer } };
   },
   async create(body) {
-    if (customers.some((c) => c.phoneNumber === body.phoneNumber)) {
-      return { success: false, error: { message: 'Phone number already exists', statusCode: 400 } };
-    }
     const id = getNextId('customer');
+    const customerCode = `C-${String(mockCustomerCodeCounter++).padStart(5, '0')}`;
     const level = body.customerLevelId ? customerLevels.find((l) => l.id === body.customerLevelId) : undefined;
     const customer: typeof customers[0] = {
       id,
+      customerCode,
+      customerType: body.customerType ?? 'NATURAL',
       firstName: body.firstName,
-      lastName: body.lastName!,
-      phoneNumber: body.phoneNumber!,
-      email: body.email,
-      birthDate: body.birthDate,
-      status: body.status ?? 'LEAD',
-      customerType: body.customerType ?? 'PERSON',
+      lastName: body.lastName,
       companyName: body.companyName,
-      address: body.address,
+      brandName: body.brandName,
+      isActive: body.isActive ?? true,
+      prefix: body.prefix,
+      gender: body.gender,
+      email: body.email,
       website: body.website,
+      status: body.status ?? 'LEAD',
+      relationshipType: body.relationshipType ?? 'CUSTOMER',
+      acquisitionChannel: body.acquisitionChannel,
       customerLevelId: body.customerLevelId,
       referredByCustomerId: body.referredByCustomerId,
+      interests: body.interests,
+      psychology: body.psychology,
+      catchphrases: body.catchphrases,
+      notablePoints: body.notablePoints,
+      birthDate: body.birthDate,
+      weddingAnniversary: body.weddingAnniversary,
+      profileImageUrl: body.profileImageUrl,
+      description: body.description,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       customerLevel: level,
+      phones: body.phones ?? [],
+      addresses: body.addresses ?? [],
+      socialMedia: body.socialMedia ?? [],
+      attachments: body.attachments ?? [],
+      relatedPersonnel: body.relatedPersonnel ?? [],
     };
     customers.push(customer);
     return { success: true, data: { customer } };

@@ -145,7 +145,7 @@ export const getTransactions = async (
         {
           model: Customer,
           as: 'customer',
-          attributes: ['id', 'firstName', 'lastName', 'phoneNumber'],
+          attributes: ['id', 'firstName', 'lastName', 'customerCode'],
         },
         {
           model: Order,
@@ -205,7 +205,7 @@ export const getTransactionById = async (
         {
           model: Customer,
           as: 'customer',
-          attributes: ['id', 'firstName', 'lastName', 'phoneNumber', 'email'],
+          attributes: ['id', 'firstName', 'lastName', 'customerCode', 'email'],
         },
         {
           model: Order,
@@ -296,7 +296,7 @@ export const getCustomerTransactions = async (
           id: customer.id,
           firstName: customer.firstName,
           lastName: customer.lastName,
-          phoneNumber: customer.phoneNumber,
+          customerCode: customer.customerCode,
         },
         transactions: rows,
         pagination: {

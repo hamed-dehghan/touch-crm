@@ -80,13 +80,14 @@ todos:
     status: completed
     dependencies:
       - phase3-messaging
+isProject: false
 ---
 
 # CRM and Customer Loyalty Platform Backend - 3 Phase Implementation
 
 ## Overview
 
-Building a complete backend system using **Node.js + Express + TypeScript + Sequelize + PostgreSQL** following the project conventions defined in [`agents.md`](agents.md). The implementation will follow RESTful principles, use JWT authentication, and include Swagger documentation.
+Building a complete backend system using **Node.js + Express + TypeScript + Sequelize + PostgreSQL** following the project conventions defined in `[agents.md](agents.md)`. The implementation will follow RESTful principles, use JWT authentication, and include Swagger documentation.
 
 ---
 
@@ -372,12 +373,12 @@ Implement order management, promotion system, campaign functionality, and core b
 **1. Order Management System**
 
 - **Quick Order Creation** (`POST /api/v1/orders`):
- - Accept customer_id and order_items array
- - Calculate total_amount, tax_amount
- - Check and apply available promotions from CustomerPromotions
- - Mark promotions as used
- - Create order and order items in transaction
- - Return complete order with applied discounts
+- Accept customer_id and order_items array
+- Calculate total_amount, tax_amount
+- Check and apply available promotions from CustomerPromotions
+- Mark promotions as used
+- Create order and order items in transaction
+- Return complete order with applied discounts
 - **Order History** (`GET /api/v1/orders`): List orders with filtering
 - **Order Details** (`GET /api/v1/orders/:id`): Get order with items
 
@@ -391,10 +392,10 @@ Implement order management, promotion system, campaign functionality, and core b
 Create a modular promotions engine (`src/services/promotionsEngine.ts`):
 
 - Parse condition_json rules:
- - `{"type": "first_purchase"}` - Check if customer has no prior orders
- - `{"type": "customer_level", "level_id": 2}` - Match customer level
- - `{"type": "referral"}` - Check if customer was referred
- - `{"type": "minimum_purchase", "amount": 1000}` - Order total threshold
+- `{"type": "first_purchase"}` - Check if customer has no prior orders
+- `{"type": "customer_level", "level_id": 2}` - Match customer level
+- `{"type": "referral"}` - Check if customer was referred
+- `{"type": "minimum_purchase", "amount": 1000}` - Order total threshold
 - Evaluate promotion eligibility for a customer
 - Auto-assign promotions when conditions are met
 - Calculate expiry_date based on duration_days
@@ -404,10 +405,10 @@ Create a modular promotions engine (`src/services/promotionsEngine.ts`):
 
 - **Campaign CRUD** (`/api/v1/campaigns`): Create, list, update campaigns (admin only)
 - **Campaign Execution Service** (`src/services/campaignService.ts`):
- - Parse filter_conditions_json (e.g., `{"level": "Gold", "last_purchase_days_ago": ">90"}`)
- - Query customers matching filters
- - Render message_template with placeholders ([FirstName], [LastName], [Level])
- - Populate MessageQueue table with messages
+- Parse filter_conditions_json (e.g., `{"level": "Gold", "last_purchase_days_ago": ">90"}`)
+- Query customers matching filters
+- Render message_template with placeholders ([FirstName], [LastName], [Level])
+- Populate MessageQueue table with messages
 - **Execute Campaign** (`POST /api/v1/campaigns/:id/execute`): Trigger campaign manually
 
 **5. Project & Task Management**
@@ -445,9 +446,9 @@ Create schedulable service (`src/services/rfmService.ts`):
 
 - Daily cron job (using node-cron)
 - For each customer, calculate:
- - **Recency (R)**: Days since last order (lower is better)
- - **Frequency (F)**: Total order count
- - **Monetary (M)**: Sum of final_amount
+- **Recency (R)**: Days since last order (lower is better)
+- **Frequency (F)**: Total order count
+- **Monetary (M)**: Sum of final_amount
 - Score each metric 1-5 based on configurable thresholds (stored in config or database)
 - Calculate weighted average score
 - Update customer_level_id in Customers table
@@ -459,15 +460,15 @@ Implement background messaging infrastructure:
 
 - **MessageQueue Model**: Add fields (id, customer_id, phone_number, message_text, status, scheduled_for, sent_at, error_message)
 - **Message Queue Worker** (`src/workers/messageQueueWorker.ts`):
- - Continuous polling service
- - Fetch pending messages from MessageQueue
- - Integrate SMS API (generic/mock implementation with interface for easy provider swap)
- - Update message status (SENT/FAILED)
- - Retry logic for failed messages
+- Continuous polling service
+- Fetch pending messages from MessageQueue
+- Integrate SMS API (generic/mock implementation with interface for easy provider swap)
+- Update message status (SENT/FAILED)
+- Retry logic for failed messages
 - **Automated Message Triggers**:
- - Birthday messages (check Customers.birth_date daily)
- - Inactivity notifications (customers with no orders in X days)
- - Welcome messages for new customers
+- Birthday messages (check Customers.birth_date daily)
+- Inactivity notifications (customers with no orders in X days)
+- Welcome messages for new customers
 
 **3. Recurring Tasks Service**
 
@@ -504,10 +505,10 @@ Implement event hooks that trigger promotion evaluation:
 
 - Create backend Dockerfile (multi-stage build)
 - Update docker-compose.yml with:
- - Backend service
- - PostgreSQL service
- - Redis service (for job queuing)
- - Nginx configuration (reverse proxy)
+- Backend service
+- PostgreSQL service
+- Redis service (for job queuing)
+- Nginx configuration (reverse proxy)
 - Environment-specific configurations
 - Database migration scripts in container startup
 
@@ -561,6 +562,8 @@ graph TB
     end
 ```
 
+
+
 ---
 
 ## Key Services Architecture
@@ -581,24 +584,21 @@ graph LR
     PromotionsEngine -->|Assign| CustomerPromotions[(Customer Promotions)]
 ```
 
+
+
 ---
 
 ## Implementation Decisions (Finalized)
 
 1. **RFM Scoring Thresholds**: Configurable via environment variables with database storage option for future admin panel management
-
 2. **SMS Provider**: Mock implementation with abstract interface for easy provider integration (Kavenegar/Twilio)
-
 3. **MessageQueue Worker**: Runs as part of main app process with capability to run separately
-
 4. **Database Seed Data**: CustomerLevels seeded with defaults, fully manageable via admin panel after deployment
-
 5. **Campaign Filters**: Support for level and last_purchase_days_ago (extensible architecture for future filters)
-
 6. **RBAC Authorization**: Three-tier permission system implemented:
+  - **Sales Representative**: Limited to own customers/tasks (customers:read_own, tasks:read_own)
+  - **Sales Manager**: Full team oversight + campaigns (customers:read_all, campaigns:create)
+  - **Administrator**: Complete system access (users:manage, roles:manage, settings:manage)
+  - Granular permissions stored in Permissions table with action codes (e.g., customers:create, orders:delete)
+  - RolePermissions pivot table for flexible permission assignment
 
-   - **Sales Representative**: Limited to own customers/tasks (customers:read_own, tasks:read_own)
-   - **Sales Manager**: Full team oversight + campaigns (customers:read_all, campaigns:create)
-   - **Administrator**: Complete system access (users:manage, roles:manage, settings:manage)
-   - Granular permissions stored in Permissions table with action codes (e.g., customers:create, orders:delete)
-   - RolePermissions pivot table for flexible permission assignment

@@ -6,10 +6,19 @@ import {
   updateCustomer,
   deleteCustomer,
 } from '../controllers/customer.controller.js';
+import {
+  uploadProfileImage as uploadProfileImageHandler,
+  uploadAttachments as uploadAttachmentsHandler,
+  deleteAttachment,
+} from '../controllers/upload.controller.js';
 import { getCustomerWorkLogs } from '../controllers/worklog.controller.js';
 import { getCustomerTransactions } from '../controllers/transaction.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { requirePermission, requireAnyPermission } from '../middlewares/rbac.middleware.js';
+import {
+  uploadProfileImage as profileImageUpload,
+  uploadAttachments as attachmentsUpload,
+} from '../middlewares/upload.middleware.js';
 
 const router: Router = Router();
 
@@ -55,6 +64,31 @@ router.delete(
   deleteCustomer
 );
 
+// File upload routes
+router.post(
+  '/:id/profile-image',
+  authenticate,
+  requireAnyPermission(['customers:update_own', 'customers:update_all']),
+  profileImageUpload,
+  uploadProfileImageHandler
+);
+
+router.post(
+  '/:id/attachments',
+  authenticate,
+  requireAnyPermission(['customers:update_own', 'customers:update_all']),
+  attachmentsUpload,
+  uploadAttachmentsHandler
+);
+
+router.delete(
+  '/:id/attachments/:attachmentId',
+  authenticate,
+  requireAnyPermission(['customers:update_own', 'customers:update_all']),
+  deleteAttachment
+);
+
+// Nested resource routes
 router.get(
   '/:id/worklogs',
   authenticate,

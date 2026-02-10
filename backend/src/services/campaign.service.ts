@@ -2,6 +2,7 @@ import { Op } from 'sequelize';
 import Campaign, { CampaignStatus } from '../models/Campaign.js';
 import Customer from '../models/Customer.js';
 import CustomerLevel from '../models/CustomerLevel.js';
+import CustomerPhone from '../models/CustomerPhone.js';
 import MessageQueue, { MessageStatus } from '../models/MessageQueue.js';
 import Order from '../models/Order.js';
 
@@ -91,7 +92,7 @@ const renderMessageTemplate = (template: string, customer: Customer): string => 
   message = message.replace(/\[FirstName\]/g, customer.firstName || '');
   message = message.replace(/\[LastName\]/g, customer.lastName || '');
   message = message.replace(/\[FullName\]/g, `${customer.firstName || ''} ${customer.lastName}`.trim());
-  message = message.replace(/\[PhoneNumber\]/g, customer.phoneNumber || '');
+  message = message.replace(/\[PhoneNumber\]/g, (customer as any).phones?.[0]?.phoneNumber || '');
   message = message.replace(/\[Email\]/g, customer.email || '');
 
   // Get customer level name if available
@@ -121,15 +122,21 @@ export const executeCampaign = async (campaignId: number): Promise<number> => {
     campaign.filterConditionsJson || '{}'
   );
 
-  // Fetch matching customers
+  // Fetch matching customers with their default phone
   const customers = await Customer.findAll({
-    where,
+    where: { ...where, isActive: true },
     include: [
       ...include,
       {
         model: CustomerLevel,
         as: 'customerLevel',
         attributes: ['id', 'levelName'],
+        required: false,
+      },
+      {
+        model: CustomerPhone,
+        as: 'phones',
+        where: { isDefault: true },
         required: false,
       },
     ],
@@ -139,15 +146,17 @@ export const executeCampaign = async (campaignId: number): Promise<number> => {
     throw new Error('No customers match the campaign filters');
   }
 
-  // Create message queue entries
-  const messageQueueEntries = customers.map((customer) => ({
-    customerId: customer.id,
-    phoneNumber: customer.phoneNumber,
-    messageText: renderMessageTemplate(campaign.messageTemplate, customer),
-    status: MessageStatus.PENDING,
-    scheduledFor: campaign.scheduledSendTime || new Date(),
-    retryCount: 0,
-  }));
+  // Create message queue entries (skip customers with no phone number)
+  const messageQueueEntries = customers
+    .filter((customer) => (customer as any).phones?.length > 0)
+    .map((customer) => ({
+      customerId: customer.id,
+      phoneNumber: (customer as any).phones[0].phoneNumber,
+      messageText: renderMessageTemplate(campaign.messageTemplate, customer),
+      status: MessageStatus.PENDING,
+      scheduledFor: campaign.scheduledSendTime || new Date(),
+      retryCount: 0,
+    }));
 
   await MessageQueue.bulkCreate(messageQueueEntries);
 

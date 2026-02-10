@@ -25,7 +25,7 @@ export default function NewOrderPage() {
     api.products.list().then((r) => r.success && r.data && setProducts(r.data.products));
   }, []);
 
-  const filteredCustomers = search ? customers.filter((c) => c.phoneNumber?.includes(search) || c.lastName?.includes(search) || c.firstName?.includes(search)) : customers;
+  const filteredCustomers = search ? customers.filter((c) => c.customerCode?.includes(search) || c.lastName?.includes(search) || c.firstName?.includes(search) || c.companyName?.includes(search)) : customers;
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
 
   const addLine = () => setLineItems((prev) => [...prev, { productId: products[0]?.id ?? 0, quantity: 1 }]);
@@ -72,7 +72,7 @@ export default function NewOrderPage() {
           <div className="max-h-40 overflow-y-auto border rounded-lg p-2 mt-2">
             {filteredCustomers.slice(0, 20).map((c) => (
               <button key={c.id} type="button" onClick={() => setSelectedCustomerId(c.id)} className={`block w-full text-right py-2 px-3 rounded ${selectedCustomerId === c.id ? 'bg-blue-100' : 'hover:bg-slate-50'}`}>
-                {[c.firstName, c.lastName].filter(Boolean).join(' ')} — {c.phoneNumber}
+                {[c.firstName, c.lastName].filter(Boolean).join(' ')} — {c.customerCode}
               </button>
             ))}
           </div>

@@ -131,7 +131,7 @@ export default function PromotionsPage() {
                 <select value={assignCustomerId} onChange={(e) => setAssignCustomerId(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                   <option value="">-- انتخاب کنید --</option>
                   {customers.map((c) => (
-                    <option key={c.id} value={c.id}>{[c.firstName, c.lastName].filter(Boolean).join(' ')} — {c.phoneNumber}</option>
+                    <option key={c.id} value={c.id}>{[c.firstName, c.lastName].filter(Boolean).join(' ')} — {c.customerCode}</option>
                   ))}
                 </select>
               </div>
