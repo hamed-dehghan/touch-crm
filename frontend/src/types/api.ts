@@ -257,7 +257,7 @@ export interface Project {
   description?: string;
   createdAt?: string;
   updatedAt?: string;
-  customer?: { id: number; firstName?: string; lastName: string };
+  customer?: { id: number; firstName?: string; lastName?: string };
 }
 
 /* ── WorkLog ── */
@@ -273,7 +273,7 @@ export interface WorkLog {
   createdAt?: string;
   updatedAt?: string;
   loggedBy?: { id: number; username: string; fullName?: string };
-  customer?: { id: number; firstName?: string; lastName: string };
+  customer?: { id: number; firstName?: string; lastName?: string };
   task?: { id: number; title: string };
 }
 
