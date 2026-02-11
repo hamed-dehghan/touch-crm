@@ -7,6 +7,7 @@ export { default as CustomerLevel } from './CustomerLevel.js';
 export { default as Customer } from './Customer.js';
 export { default as Project } from './Project.js';
 export { default as Task } from './Task.js';
+export { default as TaskAttachment } from './TaskAttachment.js';
 export { default as WorkLog } from './WorkLog.js';
 export { default as Product } from './Product.js';
 export { default as Order } from './Order.js';

@@ -1,8 +1,10 @@
+// backend/src/services/recurringTasks.service.ts
 import { Op } from 'sequelize';
 import Task, { TaskStatus } from '../models/Task.js';
 
 /**
- * Process recurring tasks - duplicate tasks when interval has passed
+ * Process recurring tasks - duplicate tasks when interval has passed.
+ * Respects recurringEndDate to stop creating new instances.
  */
 export const processRecurringTasks = async (): Promise<{
   processed: number;
@@ -11,11 +13,11 @@ export const processRecurringTasks = async (): Promise<{
 }> => {
   const now = new Date();
 
-  // Find all recurring tasks
+  // Find all recurring tasks that are completed or cancelled
   const recurringTasks = await Task.findAll({
     where: {
       isRecurring: true,
-      status: { [Op.in]: [TaskStatus.COMPLETED, TaskStatus.CANCELLED] }, // Only process completed/cancelled tasks
+      status: { [Op.in]: [TaskStatus.COMPLETED, TaskStatus.CANCELLED] },
     },
   });
 
@@ -29,30 +31,37 @@ export const processRecurringTasks = async (): Promise<{
         continue;
       }
 
+      // Skip if past recurring end date
+      if (task.recurringEndDate && new Date(task.recurringEndDate) < now) {
+        processed++;
+        continue;
+      }
+
       // Calculate next trigger date
       const nextTriggerDate = new Date(task.lastTriggeredAt);
       nextTriggerDate.setDate(nextTriggerDate.getDate() + task.recurringIntervalDays);
 
       // Check if it's time to create a new task
       if (now >= nextTriggerDate) {
-        // Create duplicate task
         await Task.create({
           title: task.title,
           description: task.description,
+          customerId: task.customerId,
           projectId: task.projectId,
           assignedToUserId: task.assignedToUserId,
           createdByUserId: task.createdByUserId,
           dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+          dueTime: task.dueTime,
+          reminderDaysBefore: task.reminderDaysBefore,
           status: TaskStatus.PENDING,
           isRecurring: true,
           recurringIntervalDays: task.recurringIntervalDays,
+          recurringStartDate: task.recurringStartDate,
+          recurringEndDate: task.recurringEndDate,
           lastTriggeredAt: now,
         });
 
-        // Update original task's lastTriggeredAt
-        await task.update({
-          lastTriggeredAt: now,
-        });
+        await task.update({ lastTriggeredAt: now });
 
         created++;
       }

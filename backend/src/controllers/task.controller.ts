@@ -1,8 +1,20 @@
+// backend/src/controllers/task.controller.ts
 import { Request, Response, NextFunction } from 'express';
 import Task, { TaskStatus } from '../models/Task.js';
+import TaskAttachment from '../models/TaskAttachment.js';
 import Project from '../models/Project.js';
 import User from '../models/User.js';
+import Customer from '../models/Customer.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
+
+/** Shared include config for task queries */
+const taskIncludes = [
+  { model: Customer, as: 'customer', attributes: ['id', 'firstName', 'lastName', 'companyName'] },
+  { model: Project, as: 'project', attributes: ['id', 'projectName'] },
+  { model: User, as: 'assignedTo', attributes: ['id', 'username', 'fullName'] },
+  { model: User, as: 'createdBy', attributes: ['id', 'username', 'fullName'] },
+  { model: TaskAttachment, as: 'attachments' },
+];
 
 /**
  * @swagger
@@ -26,6 +38,8 @@ import { NotFoundError, ValidationError } from '../utils/errors.js';
  *                 type: string
  *               description:
  *                 type: string
+ *               customerId:
+ *                 type: integer
  *               projectId:
  *                 type: integer
  *               assignedToUserId:
@@ -33,10 +47,21 @@ import { NotFoundError, ValidationError } from '../utils/errors.js';
  *               dueDate:
  *                 type: string
  *                 format: date-time
+ *               dueTime:
+ *                 type: string
+ *                 example: "14:30"
+ *               reminderDaysBefore:
+ *                 type: integer
  *               isRecurring:
  *                 type: boolean
  *               recurringIntervalDays:
  *                 type: integer
+ *               recurringStartDate:
+ *                 type: string
+ *                 format: date
+ *               recurringEndDate:
+ *                 type: string
+ *                 format: date
  *     responses:
  *       201:
  *         description: Task created successfully
@@ -50,11 +75,16 @@ export const createTask = async (
     const {
       title,
       description,
+      customerId,
       projectId,
       assignedToUserId,
       dueDate,
+      dueTime,
+      reminderDaysBefore,
       isRecurring,
       recurringIntervalDays,
+      recurringStartDate,
+      recurringEndDate,
     } = req.body;
     const userId = req.user?.userId;
 
@@ -68,6 +98,14 @@ export const createTask = async (
       throw new NotFoundError('Assigned user');
     }
 
+    // Verify customer exists if provided
+    if (customerId) {
+      const customer = await Customer.findByPk(customerId);
+      if (!customer) {
+        throw new NotFoundError('Customer');
+      }
+    }
+
     // Verify project exists if provided
     if (projectId) {
       const project = await Project.findByPk(projectId);
@@ -79,23 +117,22 @@ export const createTask = async (
     const task = await Task.create({
       title,
       description,
+      customerId,
       projectId,
       assignedToUserId,
       createdByUserId: userId || 1,
       dueDate: dueDate ? new Date(dueDate) : undefined,
+      dueTime,
+      reminderDaysBefore,
       status: TaskStatus.PENDING,
       isRecurring: isRecurring || false,
       recurringIntervalDays,
+      recurringStartDate,
+      recurringEndDate,
       lastTriggeredAt: isRecurring ? new Date() : undefined,
     });
 
-    const createdTask = await Task.findByPk(task.id, {
-      include: [
-        { model: Project, as: 'project', attributes: ['id', 'projectName'] },
-        { model: User, as: 'assignedTo', attributes: ['id', 'username', 'fullName'] },
-        { model: User, as: 'createdBy', attributes: ['id', 'username', 'fullName'] },
-      ],
-    });
+    const createdTask = await Task.findByPk(task.id, { include: taskIncludes });
 
     res.status(201).json({
       success: true,
@@ -134,11 +171,7 @@ export const getMyTasks = async (
 
     const tasks = await Task.findAll({
       where: { assignedToUserId: userId },
-      include: [
-        { model: Project, as: 'project', attributes: ['id', 'projectName'] },
-        { model: User, as: 'assignedTo', attributes: ['id', 'username', 'fullName'] },
-        { model: User, as: 'createdBy', attributes: ['id', 'username', 'fullName'] },
-      ],
+      include: taskIncludes,
       order: [['dueDate', 'ASC'], ['createdAt', 'DESC']],
     });
 
@@ -167,9 +200,14 @@ export const getMyTasks = async (
  *         schema:
  *           type: integer
  *       - in: query
+ *         name: customerId
+ *         schema:
+ *           type: integer
+ *       - in: query
  *         name: status
  *         schema:
  *           type: string
+ *           enum: [PENDING, COMPLETED, CANCELLED]
  *     responses:
  *       200:
  *         description: List of tasks
@@ -180,23 +218,16 @@ export const getTasks = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { projectId, status } = req.query;
+    const { projectId, customerId, status } = req.query;
 
     const where: any = {};
-    if (projectId) {
-      where.projectId = projectId;
-    }
-    if (status) {
-      where.status = status;
-    }
+    if (projectId) where.projectId = projectId;
+    if (customerId) where.customerId = customerId;
+    if (status) where.status = status;
 
     const tasks = await Task.findAll({
       where,
-      include: [
-        { model: Project, as: 'project', attributes: ['id', 'projectName'] },
-        { model: User, as: 'assignedTo', attributes: ['id', 'username', 'fullName'] },
-        { model: User, as: 'createdBy', attributes: ['id', 'username', 'fullName'] },
-      ],
+      include: taskIncludes,
       order: [['dueDate', 'ASC'], ['createdAt', 'DESC']],
     });
 
@@ -237,13 +268,7 @@ export const getTaskById = async (
   try {
     const { id } = req.params;
 
-    const task = await Task.findByPk(id, {
-      include: [
-        { model: Project, as: 'project' },
-        { model: User, as: 'assignedTo' },
-        { model: User, as: 'createdBy' },
-      ],
-    });
+    const task = await Task.findByPk(id, { include: taskIncludes });
 
     if (!task) {
       throw new NotFoundError('Task');
@@ -285,7 +310,7 @@ export const getTaskById = async (
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [PENDING, IN_PROGRESS, COMPLETED, CANCELLED]
+ *                 enum: [PENDING, COMPLETED, CANCELLED]
  *     responses:
  *       200:
  *         description: Task status updated successfully
@@ -347,8 +372,20 @@ export const updateTask = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { title, description, assignedToUserId, dueDate, isRecurring, recurringIntervalDays } =
-      req.body;
+    const {
+      title,
+      description,
+      customerId,
+      assignedToUserId,
+      projectId,
+      dueDate,
+      dueTime,
+      reminderDaysBefore,
+      isRecurring,
+      recurringIntervalDays,
+      recurringStartDate,
+      recurringEndDate,
+    } = req.body;
 
     const task = await Task.findByPk(id);
 
@@ -364,20 +401,38 @@ export const updateTask = async (
       }
     }
 
+    // Verify customer if provided
+    if (customerId) {
+      const customer = await Customer.findByPk(customerId);
+      if (!customer) {
+        throw new NotFoundError('Customer');
+      }
+    }
+
     await task.update({
       title: title || task.title,
       description: description !== undefined ? description : task.description,
+      customerId: customerId !== undefined ? customerId : task.customerId,
       assignedToUserId: assignedToUserId || task.assignedToUserId,
+      projectId: projectId !== undefined ? projectId : task.projectId,
       dueDate: dueDate ? new Date(dueDate) : task.dueDate,
+      dueTime: dueTime !== undefined ? dueTime : task.dueTime,
+      reminderDaysBefore: reminderDaysBefore !== undefined ? reminderDaysBefore : task.reminderDaysBefore,
       isRecurring: isRecurring !== undefined ? isRecurring : task.isRecurring,
       recurringIntervalDays:
         recurringIntervalDays !== undefined ? recurringIntervalDays : task.recurringIntervalDays,
+      recurringStartDate:
+        recurringStartDate !== undefined ? recurringStartDate : task.recurringStartDate,
+      recurringEndDate:
+        recurringEndDate !== undefined ? recurringEndDate : task.recurringEndDate,
     });
+
+    const updatedTask = await Task.findByPk(id, { include: taskIncludes });
 
     res.json({
       success: true,
       data: {
-        task,
+        task: updatedTask,
       },
     });
   } catch (error) {

@@ -225,25 +225,43 @@ export interface Campaign {
 }
 
 /* ── Task ── */
-export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type TaskStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED';
+
+export interface TaskAttachment {
+  id: number;
+  taskId: number;
+  fileName: string;
+  filePath: string;
+  fileType?: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface Task {
   id: number;
   title: string;
   description?: string;
+  customerId?: number;
   projectId?: number;
   assignedToUserId: number;
   createdByUserId: number;
   dueDate?: string;
+  dueTime?: string;
+  reminderDaysBefore?: number;
   status: TaskStatus;
   isRecurring: boolean;
   recurringIntervalDays?: number;
+  recurringStartDate?: string;
+  recurringEndDate?: string;
   lastTriggeredAt?: string;
   createdAt?: string;
   updatedAt?: string;
+  customer?: { id: number; firstName?: string; lastName?: string; companyName?: string };
   project?: { id: number; projectName: string };
   assignedTo?: { id: number; username: string; fullName?: string };
   createdBy?: { id: number; username: string; fullName?: string };
+  attachments?: TaskAttachment[];
 }
 
 /* ── Project ── */

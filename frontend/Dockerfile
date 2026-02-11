@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package.json package-lock.json* pnpm-lock.yaml* ./
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Stage 2: Build application
 FROM docker.arvancloud.ir/oven/bun:1 AS builder

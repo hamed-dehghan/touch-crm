@@ -1,3 +1,4 @@
+// backend/src/migrations/20240101000008-create-tasks.cjs
 'use strict';
 
 module.exports = {
@@ -15,6 +16,14 @@ module.exports = {
       description: {
         type: Sequelize.TEXT,
         allowNull: true,
+      },
+      customer_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'customers',
+          key: 'id',
+        },
       },
       project_id: {
         type: Sequelize.INTEGER,
@@ -44,8 +53,16 @@ module.exports = {
         type: Sequelize.DATE,
         allowNull: true,
       },
+      due_time: {
+        type: Sequelize.STRING(5),
+        allowNull: true,
+      },
+      reminder_days_before: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+      },
       status: {
-        type: Sequelize.ENUM('PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'),
+        type: Sequelize.ENUM('PENDING', 'COMPLETED', 'CANCELLED'),
         allowNull: false,
         defaultValue: 'PENDING',
       },
@@ -55,6 +72,14 @@ module.exports = {
       },
       recurring_interval_days: {
         type: Sequelize.INTEGER,
+        allowNull: true,
+      },
+      recurring_start_date: {
+        type: Sequelize.DATEONLY,
+        allowNull: true,
+      },
+      recurring_end_date: {
+        type: Sequelize.DATEONLY,
         allowNull: true,
       },
       last_triggered_at: {
@@ -72,9 +97,54 @@ module.exports = {
         defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
     });
+
+    // Task attachments table
+    await queryInterface.createTable('task_attachments', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      task_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'tasks',
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
+      },
+      file_name: {
+        type: Sequelize.STRING(255),
+        allowNull: false,
+      },
+      file_path: {
+        type: Sequelize.STRING(500),
+        allowNull: false,
+      },
+      file_type: {
+        type: Sequelize.STRING(100),
+        allowNull: true,
+      },
+      description: {
+        type: Sequelize.STRING(500),
+        allowNull: true,
+      },
+      created_at: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+      updated_at: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+    });
   },
 
   async down(queryInterface) {
+    await queryInterface.dropTable('task_attachments');
     await queryInterface.dropTable('tasks');
   },
 };

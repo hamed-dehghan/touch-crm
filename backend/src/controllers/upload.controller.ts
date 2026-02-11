@@ -43,12 +43,13 @@ export const uploadProfileImage = async (
       throw new NotFoundError('Customer');
     }
 
-    if (!req.file) {
+    const file = (req as any).file;
+    if (!file) {
       res.status(400).json({ success: false, error: { message: 'No file uploaded', statusCode: 400 } });
       return;
     }
 
-    const profileImageUrl = `/uploads/profiles/${req.file.filename}`;
+    const profileImageUrl = `/uploads/profiles/${file.filename}`;
     await customer.update({ profileImageUrl });
 
     res.json({
@@ -102,7 +103,7 @@ export const uploadAttachments = async (
       throw new NotFoundError('Customer');
     }
 
-    const files = req.files as Express.Multer.File[];
+    const files = (req as any).files as Array<{ originalname: string; filename: string; mimetype: string }>;
     if (!files || files.length === 0) {
       res.status(400).json({ success: false, error: { message: 'No files uploaded', statusCode: 400 } });
       return;

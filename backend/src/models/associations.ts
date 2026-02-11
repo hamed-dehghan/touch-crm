@@ -30,6 +30,7 @@ import CustomerPromotion from './CustomerPromotion.js';
 import Campaign from './Campaign.js';
 import Project from './Project.js';
 import Task from './Task.js';
+import TaskAttachment from './TaskAttachment.js';
 import WorkLog from './WorkLog.js';
 import MessageQueue from './MessageQueue.js';
 
@@ -231,6 +232,16 @@ export const initializeAssociations = (): void => {
     as: 'projects',
   });
 
+  // Task <-> Customer (Many-to-One, optional direct link)
+  Task.belongsTo(Customer, {
+    foreignKey: 'customerId',
+    as: 'customer',
+  });
+  Customer.hasMany(Task, {
+    foreignKey: 'customerId',
+    as: 'tasks',
+  });
+
   // Task <-> Project (Many-to-One)
   Task.belongsTo(Project, {
     foreignKey: 'projectId',
@@ -239,6 +250,16 @@ export const initializeAssociations = (): void => {
   Project.hasMany(Task, {
     foreignKey: 'projectId',
     as: 'tasks',
+  });
+
+  // Task <-> TaskAttachment (One-to-Many)
+  Task.hasMany(TaskAttachment, {
+    foreignKey: 'taskId',
+    as: 'attachments',
+  });
+  TaskAttachment.belongsTo(Task, {
+    foreignKey: 'taskId',
+    as: 'task',
   });
 
   // Task <-> User (assigned to)

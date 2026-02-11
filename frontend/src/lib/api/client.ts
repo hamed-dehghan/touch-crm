@@ -109,7 +109,7 @@ export interface RolesApi {
 }
 
 export interface TasksApi {
-  list(params?: { projectId?: number; status?: string }): Promise<ApiResponse<{ tasks: Task[] }>>;
+  list(params?: { projectId?: number; customerId?: number; status?: string }): Promise<ApiResponse<{ tasks: Task[] }>>;
   getMyTasks(): Promise<ApiResponse<{ tasks: Task[] }>>;
   getById(id: number): Promise<ApiResponse<{ task: Task }>>;
   create(body: Partial<Task>): Promise<ApiResponse<{ task: Task }>>;

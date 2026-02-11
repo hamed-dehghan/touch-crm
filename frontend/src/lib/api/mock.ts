@@ -494,11 +494,11 @@ const tasksApi: ApiClient['tasks'] = {
   async list(params) {
     let list = [...tasks];
     if (params?.projectId) list = list.filter((t) => t.projectId === params.projectId);
+    if (params?.customerId) list = list.filter((t) => t.customerId === params.customerId);
     if (params?.status) list = list.filter((t) => t.status === params.status);
     return { success: true, data: { tasks: list } };
   },
   async getMyTasks() {
-    // In mock mode, return tasks assigned to user 1
     const list = tasks.filter((t) => t.assignedToUserId === 1);
     return { success: true, data: { tasks: list } };
   },
@@ -511,19 +511,26 @@ const tasksApi: ApiClient['tasks'] = {
     const id = getNextId('task');
     const assignedUser = users.find((u) => u.id === body.assignedToUserId);
     const project = body.projectId ? projects.find((p) => p.id === body.projectId) : undefined;
+    const customer = body.customerId ? customers.find((c) => c.id === body.customerId) : undefined;
     const task: typeof tasks[0] = {
       id,
       title: body.title!,
       description: body.description,
+      customerId: body.customerId,
       projectId: body.projectId,
       assignedToUserId: body.assignedToUserId!,
       createdByUserId: 1,
       dueDate: body.dueDate,
+      dueTime: body.dueTime,
+      reminderDaysBefore: body.reminderDaysBefore,
       status: 'PENDING',
       isRecurring: body.isRecurring ?? false,
       recurringIntervalDays: body.recurringIntervalDays,
+      recurringStartDate: body.recurringStartDate,
+      recurringEndDate: body.recurringEndDate,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      customer: customer ? { id: customer.id, firstName: customer.firstName, lastName: customer.lastName, companyName: customer.companyName } : undefined,
       project: project ? { id: project.id, projectName: project.projectName } : undefined,
       assignedTo: assignedUser ? { id: assignedUser.id, username: assignedUser.username, fullName: assignedUser.fullName } : undefined,
       createdBy: { id: 1, username: 'admin', fullName: 'مدیر سیستم' },
@@ -534,7 +541,18 @@ const tasksApi: ApiClient['tasks'] = {
   async update(id, body) {
     const idx = tasks.findIndex((t) => t.id === id);
     if (idx === -1) return { success: false, error: { message: 'Task not found', statusCode: 404 } };
-    tasks[idx] = { ...tasks[idx], ...body, updatedAt: new Date().toISOString() };
+    // Resolve nested relations if IDs changed
+    const customer = body.customerId ? customers.find((c) => c.id === body.customerId) : tasks[idx].customer;
+    const project = body.projectId ? projects.find((p) => p.id === body.projectId) : tasks[idx].project;
+    const assignedUser = body.assignedToUserId ? users.find((u) => u.id === body.assignedToUserId) : undefined;
+    tasks[idx] = {
+      ...tasks[idx],
+      ...body,
+      customer: customer ? { id: customer.id, firstName: customer.firstName, lastName: customer.lastName, companyName: customer.companyName } : undefined,
+      project: project ? { id: project.id, projectName: project.projectName } : undefined,
+      assignedTo: assignedUser ? { id: assignedUser.id, username: assignedUser.username, fullName: assignedUser.fullName } : tasks[idx].assignedTo,
+      updatedAt: new Date().toISOString(),
+    };
     return { success: true, data: { task: tasks[idx] } };
   },
   async updateStatus(id, status) {

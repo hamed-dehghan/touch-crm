@@ -61,9 +61,9 @@ async function syncChildRecords<T extends { id?: number }>(
     attributes: ['id'],
     transaction,
   });
-  const existingIds = new Set(existing.map((r: any) => r.id));
-  const incomingIds = new Set(
-    incomingRecords.filter((r) => r.id).map((r) => r.id)
+  const existingIds = new Set<number>(existing.map((r: any) => r.id as number));
+  const incomingIds = new Set<number>(
+    incomingRecords.filter((r): r is T & { id: number } => r.id != null).map((r) => r.id)
   );
 
   // Delete records that are no longer present
