@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
 import Product from '../models/Product.js';
 import { NotFoundError } from '../utils/errors.js';
 import { createProductSchema, updateProductSchema } from '../validations/product.validation.js';
@@ -65,19 +66,41 @@ export const createProduct = async (
  *         description: List of products
  */
 export const getProducts = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const products = await Product.findAll({
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = (page - 1) * limit;
+    const { search } = req.query;
+
+    const where: any = {};
+
+    if (search) {
+      where[Op.or] = [
+        { productName: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+
+    const { count, rows } = await Product.findAndCountAll({
+      where,
+      limit,
+      offset,
       order: [['createdAt', 'DESC']],
     });
 
     res.json({
       success: true,
       data: {
-        products,
+        products: rows,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil(count / limit),
+        },
       },
     });
   } catch (error) {

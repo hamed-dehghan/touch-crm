@@ -22,10 +22,63 @@ const createApp = (): Application => {
 
   // Security middlewares
   app.use(helmet());
-  app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-    credentials: true,
-  }));
+
+  const allowedOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim())
+    : ['http://localhost:3000', 'http://localhost:5173'];
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+
+  const isLocalhostOrigin = (origin: string): boolean => {
+    try {
+      const url = new URL(origin);
+      return ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+    } catch {
+      return false;
+    }
+  };
+
+  const isPrivateNetworkOrigin = (origin: string): boolean => {
+    try {
+      const url = new URL(origin);
+      const host = url.hostname;
+      if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+      if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+      const match172 = host.match(/^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/);
+      if (match172) {
+        const secondOctet = Number(match172[1]);
+        return secondOctet >= 16 && secondOctet <= 31;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (e.g. server-to-server or curl)
+        if (!origin) {
+          return callback(null, true);
+        }
+
+        if (
+          allowedOrigins.includes('*') ||
+          allowedOrigins.includes(origin) ||
+          isLocalhostOrigin(origin) ||
+          (isDevelopment && isPrivateNetworkOrigin(origin))
+        ) {
+          return callback(null, true);
+        }
+
+        return callback(new Error(`CORS blocked for origin: ${origin}`));
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      optionsSuccessStatus: 204,
+    })
+  );
 
   // Body parsing middleware
   app.use(express.json());
