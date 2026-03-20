@@ -6,6 +6,7 @@ import type { CustomerLevel } from '@/types/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 export default function CustomerLevelsPage() {
   const [levels, setLevels] = useState<CustomerLevel[]>([]);
@@ -24,7 +25,7 @@ export default function CustomerLevelsPage() {
       <Card>
         <CardHeader><CardTitle>سطوح و بازه امتیاز</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <p className="text-slate-500">در حال بارگذاری...</p> : levels.length === 0 ? <p className="text-slate-500">سطحی تعریف نشده.</p> : (
+          {loading ? <TableLoadingSkeleton columns={3} rows={8} /> : levels.length === 0 ? <p className="text-slate-500">سطحی تعریف نشده.</p> : (
             <table className="w-full text-sm text-right">
               <thead>
                 <tr className="border-b border-slate-200">

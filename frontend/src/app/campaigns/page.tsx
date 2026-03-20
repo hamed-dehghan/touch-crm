@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
+import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -85,7 +86,7 @@ export default function CampaignsPage() {
       <Card>
         <CardHeader><CardTitle>لیست کمپین‌ها</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <p className="text-slate-500">در حال بارگذاری...</p> : campaigns.length === 0 ? <p className="text-slate-500">کمپینی یافت نشد.</p> : (
+          {loading ? <TableLoadingSkeleton columns={3} rows={7} /> : campaigns.length === 0 ? <p className="text-slate-500">کمپینی یافت نشد.</p> : (
             <table className="w-full text-sm text-right">
               <thead>
                 <tr className="border-b border-slate-200">

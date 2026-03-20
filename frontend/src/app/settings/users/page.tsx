@@ -7,8 +7,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { useAppDialogs } from '@/components/ui/AppDialogs';
+import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 export default function UsersPage() {
+  const dialogs = useAppDialogs();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,9 +78,13 @@ export default function UsersPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('آیا از حذف این کاربر مطمئنید؟')) return;
+    const ok = await dialogs.confirm('آیا از حذف این کاربر مطمئنید؟');
+    if (!ok) return;
     const res = await api.users.delete(id);
-    if (!res.success) { alert(res.error?.message ?? 'خطا در حذف'); return; }
+    if (!res.success) {
+      await dialogs.alert(res.error?.message ?? 'خطا در حذف');
+      return;
+    }
     fetchData();
   };
 
@@ -123,7 +130,7 @@ export default function UsersPage() {
       <Card>
         <CardHeader><CardTitle>لیست کاربران</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <p className="text-slate-500">در حال بارگذاری...</p> : users.length === 0 ? <p className="text-slate-500">کاربری یافت نشد.</p> : (
+          {loading ? <TableLoadingSkeleton columns={6} rows={8} /> : users.length === 0 ? <p className="text-slate-500">کاربری یافت نشد.</p> : (
             <table className="w-full text-sm text-right">
               <thead>
                 <tr className="border-b border-slate-200">

@@ -9,10 +9,13 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { formatGregorianToJalali } from '@/utils/date';
+import { useAppDialogs } from '@/components/ui/AppDialogs';
+import { CustomerDetailLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 type Tab = 'profile' | 'transactions' | 'worklogs';
 
 export default function CustomerDetailPage() {
+  const dialogs = useAppDialogs();
   const params = useParams();
   const router = useRouter();
   const id = Number(params.id);
@@ -43,14 +46,15 @@ export default function CustomerDetailPage() {
   }, [id]);
 
   const handleDelete = async () => {
-    if (!confirm('آیا از حذف این مشتری مطمئنید؟')) return;
+    const ok = await dialogs.confirm('آیا از حذف این مشتری مطمئنید؟');
+    if (!ok) return;
     setDeleting(true);
     const res = await api.customers.delete(id);
     setDeleting(false);
     if (res.success) router.push('/customers');
   };
 
-  if (loading || !customer) return <div className="text-slate-500">در حال بارگذاری...</div>;
+  if (loading || !customer) return <CustomerDetailLoadingSkeleton />;
 
   const statusVariant = customer.status === 'CUSTOMER' ? 'success' : customer.status === 'OPPORTUNITY' ? 'warning' : 'default';
 

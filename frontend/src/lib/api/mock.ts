@@ -197,8 +197,14 @@ const ordersApi: ApiClient['orders'] = {
 };
 
 const productsApi: ApiClient['products'] = {
-  async list() {
-    return { success: true, data: { products: [...products] } };
+  async list(params) {
+    let filtered = [...products];
+    if (params?.search) {
+      const s = params.search.toLowerCase();
+      filtered = filtered.filter((p) => p.productName.toLowerCase().includes(s));
+    }
+    const { rows, pagination } = paginate(filtered, params?.page, params?.limit);
+    return { success: true, data: { products: rows, pagination } };
   },
   async getById(id) {
     const product = products.find((p) => p.id === id);

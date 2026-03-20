@@ -7,8 +7,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { useAppDialogs } from '@/components/ui/AppDialogs';
+import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 export default function PromotionsPage() {
+  const dialogs = useAppDialogs();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +77,8 @@ export default function PromotionsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('آیا از حذف این تخفیف مطمئنید؟')) return;
+    const ok = await dialogs.confirm('آیا از حذف این تخفیف مطمئنید؟');
+    if (!ok) return;
     const res = await api.promotions.delete(id);
     if (res.success) fetchData();
   };
@@ -82,7 +86,11 @@ export default function PromotionsPage() {
   const handleAssign = async () => {
     if (!showAssign || !assignCustomerId) return;
     const res = await api.promotions.assign(showAssign, Number(assignCustomerId));
-    if (res.success) { setShowAssign(null); setAssignCustomerId(''); alert('تخفیف با موفقیت اختصاص داده شد.'); }
+    if (res.success) {
+      setShowAssign(null);
+      setAssignCustomerId('');
+      await dialogs.alert('تخفیف با موفقیت اختصاص داده شد.');
+    }
   };
 
   return (
@@ -147,7 +155,7 @@ export default function PromotionsPage() {
       <Card>
         <CardHeader><CardTitle>لیست تخفیف‌ها</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <p className="text-slate-500">در حال بارگذاری...</p> : promotions.length === 0 ? <p className="text-slate-500">تخفیفی یافت نشد.</p> : (
+          {loading ? <TableLoadingSkeleton columns={5} rows={8} /> : promotions.length === 0 ? <p className="text-slate-500">تخفیفی یافت نشد.</p> : (
             <table className="w-full text-sm text-right">
               <thead>
                 <tr className="border-b border-slate-200">

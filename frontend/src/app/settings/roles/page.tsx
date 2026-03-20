@@ -7,8 +7,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { useAppDialogs } from '@/components/ui/AppDialogs';
+import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 export default function RolesPage() {
+  const dialogs = useAppDialogs();
   const [roles, setRoles] = useState<(Role & { permissionCount: number; permissions?: Permission[] })[]>([]);
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,9 +65,13 @@ export default function RolesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('آیا از حذف این نقش مطمئنید؟')) return;
+    const ok = await dialogs.confirm('آیا از حذف این نقش مطمئنید؟');
+    if (!ok) return;
     const res = await api.roles.delete(id);
-    if (!res.success) { alert(res.error?.message ?? 'خطا در حذف'); return; }
+    if (!res.success) {
+      await dialogs.alert(res.error?.message ?? 'خطا در حذف');
+      return;
+    }
     fetchData();
   };
 
@@ -153,7 +160,7 @@ export default function RolesPage() {
       <Card>
         <CardHeader><CardTitle>لیست نقش‌ها</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <p className="text-slate-500">در حال بارگذاری...</p> : roles.length === 0 ? <p className="text-slate-500">نقشی یافت نشد.</p> : (
+          {loading ? <TableLoadingSkeleton columns={4} rows={8} /> : roles.length === 0 ? <p className="text-slate-500">نقشی یافت نشد.</p> : (
             <table className="w-full text-sm text-right">
               <thead>
                 <tr className="border-b border-slate-200">

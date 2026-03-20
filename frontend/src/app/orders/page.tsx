@@ -7,6 +7,7 @@ import type { Order } from '@/types/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { formatGregorianToJalali } from '@/utils/date';
+import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -28,7 +29,7 @@ export default function OrdersPage() {
       <Card>
         <CardHeader><CardTitle>لیست سفارشات</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <p className="text-slate-500">در حال بارگذاری...</p> : orders.length === 0 ? <p className="text-slate-500">سفارشی یافت نشد.</p> : (
+          {loading ? <TableLoadingSkeleton columns={5} rows={8} /> : orders.length === 0 ? <p className="text-slate-500">سفارشی یافت نشد.</p> : (
             <table className="w-full text-sm text-right">
               <thead>
                 <tr className="border-b border-slate-200">

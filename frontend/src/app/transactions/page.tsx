@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatGregorianToJalali } from '@/utils/date';
+import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -110,7 +111,7 @@ export default function TransactionsPage() {
       <Card>
         <CardHeader><CardTitle>لیست تراکنش‌ها</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <p className="text-slate-500">در حال بارگذاری...</p> : transactions.length === 0 ? <p className="text-slate-500">تراکنشی یافت نشد.</p> : (
+          {loading ? <TableLoadingSkeleton columns={4} rows={8} /> : transactions.length === 0 ? <p className="text-slate-500">تراکنشی یافت نشد.</p> : (
             <table className="w-full text-sm text-right">
               <thead>
                 <tr className="border-b border-slate-200">

@@ -7,6 +7,7 @@ import type { Campaign } from '@/types/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { CampaignDetailLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 export default function CampaignDetailPage() {
   const params = useParams();
@@ -34,7 +35,7 @@ export default function CampaignDetailPage() {
     }
   };
 
-  if (loading || !campaign) return <div className="text-slate-500">در حال بارگذاری...</div>;
+  if (loading || !campaign) return <CampaignDetailLoadingSkeleton />;
 
   return (
     <div className="space-y-6">

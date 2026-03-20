@@ -218,7 +218,7 @@ export function Sidebar() {
 
       {/* Desktop sidebar (in flow, collapsible) */}
       <aside
-        className={`hidden md:flex flex-col min-h-screen border-l border-[var(--color-border)] bg-white shrink-0 transition-[width] duration-200 ease-out ${
+        className={`hidden md:flex flex-col h-screen border-l border-[var(--color-border)] bg-white shrink-0 transition-[width] duration-200 ease-out ${
           collapsed ? 'w-[4.5rem]' : 'w-56'
         }`}
       >

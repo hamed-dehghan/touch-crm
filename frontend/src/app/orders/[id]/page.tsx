@@ -8,6 +8,7 @@ import type { Order } from '@/types/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { formatGregorianToJalali } from '@/utils/date';
+import { OrderDetailLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -25,7 +26,7 @@ export default function OrderDetailPage() {
     })();
   }, [id]);
 
-  if (loading || !order) return <div className="text-slate-500">در حال بارگذاری...</div>;
+  if (loading || !order) return <OrderDetailLoadingSkeleton />;
 
   const customerName = order.customer ? [order.customer.firstName, order.customer.lastName].filter(Boolean).join(' ') : `مشتری ${order.customerId}`;
 

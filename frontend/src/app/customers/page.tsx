@@ -8,8 +8,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { useAppDialogs } from '@/components/ui/AppDialogs';
+import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 export default function CustomersPage() {
+  const dialogs = useAppDialogs();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [search, setSearch] = useState('');
@@ -56,7 +59,7 @@ export default function CustomersPage() {
             </select>
             <Button variant="secondary" onClick={handleSearch}>جستجو</Button>
           </div>
-          {loading ? <p className="text-slate-500">در حال بارگذاری...</p> : customers.length === 0 ? <p className="text-slate-500">مشتریی یافت نشد.</p> : (
+          {loading ? <TableLoadingSkeleton columns={5} rows={8} /> : customers.length === 0 ? <p className="text-slate-500">مشتریی یافت نشد.</p> : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-right">
                 <thead>
@@ -79,7 +82,8 @@ export default function CustomersPage() {
                         <Link href={`/customers/${c.id}`}><Button variant="ghost" size="sm">مشاهده</Button></Link>
                         <Link href={`/customers/${c.id}/edit`}><Button variant="ghost" size="sm">ویرایش</Button></Link>
                         <Button variant="danger" size="sm" onClick={async () => {
-                          if (!confirm('آیا از حذف این مشتری مطمئنید؟')) return;
+                          const ok = await dialogs.confirm('آیا از حذف این مشتری مطمئنید؟');
+                          if (!ok) return;
                           const res = await api.customers.delete(c.id);
                           if (res.success) fetchCustomers(pagination.page);
                         }}>حذف</Button>

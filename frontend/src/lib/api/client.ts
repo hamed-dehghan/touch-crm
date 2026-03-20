@@ -54,7 +54,7 @@ export interface OrdersApi {
 }
 
 export interface ProductsApi {
-  list(): Promise<ApiResponse<{ products: Product[] }>>;
+  list(params?: ListParams): Promise<ApiResponse<{ products: Product[]; pagination: Pagination }>>;
   getById(id: number): Promise<ApiResponse<{ product: Product }>>;
   create(body: Partial<Product>): Promise<ApiResponse<{ product: Product }>>;
   update(id: number, body: Partial<Product>): Promise<ApiResponse<{ product: Product }>>;

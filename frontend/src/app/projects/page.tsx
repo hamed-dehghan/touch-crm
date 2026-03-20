@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 const statusMap: Record<string, { label: string; variant: 'default' | 'warning' | 'success' }> = {
   OPEN: { label: 'باز', variant: 'default' },
@@ -118,7 +119,7 @@ export default function ProjectsPage() {
       <Card>
         <CardHeader><CardTitle>لیست پروژه‌ها</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <p className="text-slate-500">در حال بارگذاری...</p> : projects.length === 0 ? <p className="text-slate-500">پروژه‌ای یافت نشد.</p> : (
+          {loading ? <TableLoadingSkeleton columns={4} rows={8} /> : projects.length === 0 ? <p className="text-slate-500">پروژه‌ای یافت نشد.</p> : (
             <table className="w-full text-sm text-right">
               <thead>
                 <tr className="border-b border-slate-200">

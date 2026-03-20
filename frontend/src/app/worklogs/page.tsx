@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatGregorianToJalali } from '@/utils/date';
+import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 export default function WorkLogsPage() {
   const [workLogs, setWorkLogs] = useState<WorkLog[]>([]);
@@ -112,7 +113,7 @@ export default function WorkLogsPage() {
       <Card>
         <CardHeader><CardTitle>لیست گزارش‌ها</CardTitle></CardHeader>
         <CardContent>
-          {loading ? <p className="text-slate-500">در حال بارگذاری...</p> : workLogs.length === 0 ? <p className="text-slate-500">گزارشی یافت نشد.</p> : (
+          {loading ? <TableLoadingSkeleton columns={7} rows={8} /> : workLogs.length === 0 ? <p className="text-slate-500">گزارشی یافت نشد.</p> : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-right">
                 <thead>

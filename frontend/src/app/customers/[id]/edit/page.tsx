@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PersianDatePicker } from '@/components/ui/DatePicker';
+import { CustomerEditLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 export default function EditCustomerPage() {
   const params = useParams();
@@ -66,7 +67,7 @@ export default function EditCustomerPage() {
     router.push(`/customers/${id}`);
   };
 
-  if (loading) return <div className="text-slate-500">در حال بارگذاری...</div>;
+  if (loading) return <CustomerEditLoadingSkeleton />;
 
   return (
     <div className="max-w-xl">

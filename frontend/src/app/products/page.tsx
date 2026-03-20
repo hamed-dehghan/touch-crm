@@ -1,31 +1,45 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import type { Product } from '@/types/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { useAppDialogs } from '@/components/ui/AppDialogs';
+import { DataTable, type DataTableColumn, type DataTableAction } from '@/components/ui/DataTable';
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const dialogs = useAppDialogs();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ productName: '', price: '', taxRate: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchProducts = () => {
-    setLoading(true);
-    api.products.list().then((res) => {
-      if (res.success && res.data) setProducts(res.data.products);
-      setLoading(false);
-    });
-  };
+  const fetchProducts = useCallback(
+    async (params: { page: number; limit: number; search: string }) => {
+      const res = await api.products.list({
+        page: params.page,
+        limit: params.limit,
+        search: params.search || undefined,
+      });
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
-  useEffect(() => { fetchProducts(); }, []);
+      if (res.success && res.data) {
+        return {
+          rows: res.data.products,
+          pagination: res.data.pagination,
+        };
+      }
+
+      return {
+        rows: [],
+        pagination: { page: 1, limit: params.limit, total: 0, totalPages: 0 },
+      };
+    },
+    [refreshKey], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const resetForm = () => {
     setForm({ productName: '', price: '', taxRate: '' });
@@ -35,7 +49,11 @@ export default function ProductsPage() {
   };
 
   const startEdit = (p: Product) => {
-    setForm({ productName: p.productName, price: String(p.price), taxRate: String(p.taxRate) });
+    setForm({
+      productName: p.productName,
+      price: String(p.price),
+      taxRate: String(p.taxRate),
+    });
     setEditingId(p.id);
     setShowForm(true);
     setError('');
@@ -58,36 +76,131 @@ export default function ProductsPage() {
       ? await api.products.update(editingId, body)
       : await api.products.create(body);
     setSaving(false);
-    if (!res.success) { setError(res.error?.message ?? 'خطا'); return; }
+    if (!res.success) {
+      setError(res.error?.message ?? 'خطا');
+      return;
+    }
     resetForm();
-    fetchProducts();
+    setRefreshKey((k) => k + 1);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('آیا از حذف این محصول مطمئنید؟')) return;
-    const res = await api.products.delete(id);
-    if (res.success) fetchProducts();
+  const handleDelete = async (p: Product) => {
+    const ok = await dialogs.confirm('آیا از حذف این محصول مطمئنید؟');
+    if (!ok) return;
+    const res = await api.products.delete(p.id);
+    if (res.success) setRefreshKey((k) => k + 1);
   };
+
+  const columns: DataTableColumn<Product>[] = [
+    {
+      key: 'id',
+      title: 'شناسه',
+      width: '80px',
+      render: (row) => row.id.toLocaleString('fa-IR'),
+    },
+    {
+      key: 'productName',
+      title: 'نام محصول',
+      sticky: true,
+    },
+    {
+      key: 'price',
+      title: 'قیمت (ریال)',
+      render: (row) => row.price.toLocaleString('fa-IR'),
+    },
+    {
+      key: 'taxRate',
+      title: 'نرخ مالیات',
+      render: (row) => `${row.taxRate}%`,
+    },
+    {
+      key: 'createdAt',
+      title: 'تاریخ ایجاد',
+      render: (row) =>
+        row.createdAt
+          ? new Date(row.createdAt).toLocaleDateString('fa-IR')
+          : '—',
+    },
+  ];
+
+  const actions: DataTableAction<Product>[] = [
+    {
+      label: 'ویرایش',
+      onClick: startEdit,
+      variant: 'primary',
+      icon: <PencilIcon className="w-3.5 h-3.5" />,
+    },
+    {
+      label: 'حذف',
+      onClick: handleDelete,
+      variant: 'danger',
+      icon: <TrashIcon className="w-3.5 h-3.5" />,
+    },
+  ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">محصولات</h1>
-        <Button onClick={() => { resetForm(); setShowForm(true); }}>افزودن محصول</Button>
+        <h1 className="text-2xl font-bold text-foreground">محصولات</h1>
+        <Button
+          onClick={() => {
+            resetForm();
+            setShowForm(true);
+          }}
+        >
+          افزودن محصول
+        </Button>
       </div>
 
       {showForm && (
         <Card>
-          <CardHeader><CardTitle>{editingId ? 'ویرایش محصول' : 'محصول جدید'}</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>
+              {editingId ? 'ویرایش محصول' : 'محصول جدید'}
+            </CardTitle>
+          </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <Input label="نام محصول *" value={form.productName} onChange={(e) => setForm((f) => ({ ...f, productName: e.target.value }))} required />
-              <Input label="قیمت (ریال) *" type="number" min={0} value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} required />
-              <Input label="نرخ مالیات (%)" type="number" min={0} max={100} value={form.taxRate} onChange={(e) => setForm((f) => ({ ...f, taxRate: e.target.value }))} />
+              <Input
+                label="نام محصول *"
+                value={form.productName}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, productName: e.target.value }))
+                }
+                required
+              />
+              <Input
+                label="قیمت (ریال) *"
+                type="number"
+                min={0}
+                value={form.price}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, price: e.target.value }))
+                }
+                required
+              />
+              <Input
+                label="نرخ مالیات (%)"
+                type="number"
+                min={0}
+                max={100}
+                value={form.taxRate}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, taxRate: e.target.value }))
+                }
+              />
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-2">
-                <Button type="submit" disabled={saving}>{saving ? 'در حال ذخیره...' : editingId ? 'بروزرسانی' : 'ثبت'}</Button>
-                <Button type="button" variant="outline" onClick={resetForm}>انصراف</Button>
+                <Button type="submit" disabled={saving}>
+                  {saving
+                    ? 'در حال ذخیره...'
+                    : editingId
+                      ? 'بروزرسانی'
+                      : 'ثبت'}
+                </Button>
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  انصراف
+                </Button>
               </div>
             </form>
           </CardContent>
@@ -95,35 +208,39 @@ export default function ProductsPage() {
       )}
 
       <Card>
-        <CardHeader><CardTitle>لیست محصولات</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>لیست محصولات</CardTitle>
+        </CardHeader>
         <CardContent>
-          {loading ? <p className="text-slate-500">در حال بارگذاری...</p> : products.length === 0 ? <p className="text-slate-500">محصولی یافت نشد.</p> : (
-            <table className="w-full text-sm text-right">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="py-2 px-3">نام</th>
-                  <th className="py-2 px-3">قیمت</th>
-                  <th className="py-2 px-3">نرخ مالیات</th>
-                  <th className="py-2 px-3">عملیات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((p) => (
-                  <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-2 px-3">{p.productName}</td>
-                    <td className="py-2 px-3">{p.price.toLocaleString('fa-IR')}</td>
-                    <td className="py-2 px-3">{p.taxRate}%</td>
-                    <td className="py-2 px-3">
-                      <Button variant="ghost" size="sm" onClick={() => startEdit(p)}>ویرایش</Button>
-                      <Button variant="danger" size="sm" onClick={() => handleDelete(p.id)}>حذف</Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <DataTable<Product>
+            columns={columns}
+            actions={actions}
+            fetchData={fetchProducts}
+            rowKey={(row) => row.id}
+            searchPlaceholder="جستجوی نام محصول..."
+            pageSize={10}
+            emptyMessage="محصولی یافت نشد."
+          />
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/* ─── Inline icons ─── */
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+    </svg>
   );
 }
