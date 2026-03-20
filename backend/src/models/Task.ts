@@ -1,9 +1,9 @@
+// backend/src/models/Task.ts
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../config/database.js';
 
 export enum TaskStatus {
   PENDING = 'PENDING',
-  IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
 }
@@ -12,13 +12,18 @@ interface TaskAttributes {
   id: number;
   title: string;
   description?: string;
+  customerId?: number;
   projectId?: number;
   assignedToUserId: number;
   createdByUserId: number;
   dueDate?: Date;
+  dueTime?: string;
+  reminderDaysBefore?: number;
   status: TaskStatus;
   isRecurring: boolean;
   recurringIntervalDays?: number;
+  recurringStartDate?: string;
+  recurringEndDate?: string;
   lastTriggeredAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
@@ -31,13 +36,18 @@ class Task extends Model<TaskAttributes, TaskCreationAttributes> implements Task
   declare id: number;
   declare title: string;
   declare description?: string;
+  declare customerId?: number;
   declare projectId?: number;
   declare assignedToUserId: number;
   declare createdByUserId: number;
   declare dueDate?: Date;
+  declare dueTime?: string;
+  declare reminderDaysBefore?: number;
   declare status: TaskStatus;
   declare isRecurring: boolean;
   declare recurringIntervalDays?: number;
+  declare recurringStartDate?: string;
+  declare recurringEndDate?: string;
   declare lastTriggeredAt?: Date;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
@@ -57,6 +67,11 @@ Task.init(
     description: {
       type: DataTypes.TEXT,
       allowNull: true,
+    },
+    customerId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'customer_id',
     },
     projectId: {
       type: DataTypes.INTEGER,
@@ -78,6 +93,16 @@ Task.init(
       allowNull: true,
       field: 'due_date',
     },
+    dueTime: {
+      type: DataTypes.STRING(5),
+      allowNull: true,
+      field: 'due_time',
+    },
+    reminderDaysBefore: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'reminder_days_before',
+    },
     status: {
       type: DataTypes.ENUM(...Object.values(TaskStatus)),
       allowNull: false,
@@ -92,6 +117,16 @@ Task.init(
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'recurring_interval_days',
+    },
+    recurringStartDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      field: 'recurring_start_date',
+    },
+    recurringEndDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      field: 'recurring_end_date',
     },
     lastTriggeredAt: {
       type: DataTypes.DATE,

@@ -16,6 +16,11 @@ import Permission from './Permission.js';
 import RolePermission from './RolePermission.js';
 import Customer from './Customer.js';
 import CustomerLevel from './CustomerLevel.js';
+import CustomerPhone from './CustomerPhone.js';
+import CustomerAddress from './CustomerAddress.js';
+import CustomerSocialMedia from './CustomerSocialMedia.js';
+import CustomerAttachment from './CustomerAttachment.js';
+import CustomerRelatedPersonnel from './CustomerRelatedPersonnel.js';
 import Order from './Order.js';
 import OrderItem from './OrderItem.js';
 import Product from './Product.js';
@@ -25,6 +30,7 @@ import CustomerPromotion from './CustomerPromotion.js';
 import Campaign from './Campaign.js';
 import Project from './Project.js';
 import Task from './Task.js';
+import TaskAttachment from './TaskAttachment.js';
 import WorkLog from './WorkLog.js';
 import MessageQueue from './MessageQueue.js';
 
@@ -64,6 +70,60 @@ export const initializeAssociations = (): void => {
   CustomerLevel.hasMany(Customer, {
     foreignKey: 'customerLevelId',
     as: 'customers',
+  });
+
+  // Customer <-> CustomerPhone (One-to-Many)
+  Customer.hasMany(CustomerPhone, {
+    foreignKey: 'customerId',
+    as: 'phones',
+  });
+  CustomerPhone.belongsTo(Customer, {
+    foreignKey: 'customerId',
+    as: 'customer',
+  });
+
+  // Customer <-> CustomerAddress (One-to-Many)
+  Customer.hasMany(CustomerAddress, {
+    foreignKey: 'customerId',
+    as: 'addresses',
+  });
+  CustomerAddress.belongsTo(Customer, {
+    foreignKey: 'customerId',
+    as: 'customer',
+  });
+
+  // Customer <-> CustomerSocialMedia (One-to-Many)
+  Customer.hasMany(CustomerSocialMedia, {
+    foreignKey: 'customerId',
+    as: 'socialMedia',
+  });
+  CustomerSocialMedia.belongsTo(Customer, {
+    foreignKey: 'customerId',
+    as: 'customer',
+  });
+
+  // Customer <-> CustomerAttachment (One-to-Many)
+  Customer.hasMany(CustomerAttachment, {
+    foreignKey: 'customerId',
+    as: 'attachments',
+  });
+  CustomerAttachment.belongsTo(Customer, {
+    foreignKey: 'customerId',
+    as: 'customer',
+  });
+
+  // Customer <-> CustomerRelatedPersonnel (One-to-Many, for LEGAL entities)
+  Customer.hasMany(CustomerRelatedPersonnel, {
+    foreignKey: 'legalCustomerId',
+    as: 'relatedPersonnel',
+  });
+  CustomerRelatedPersonnel.belongsTo(Customer, {
+    foreignKey: 'legalCustomerId',
+    as: 'legalCustomer',
+  });
+  CustomerRelatedPersonnel.belongsTo(Customer, {
+    foreignKey: 'naturalCustomerId',
+    as: 'naturalCustomer',
   });
 
   // Customer <-> Customer (Self-referencing for referrals)
@@ -172,6 +232,16 @@ export const initializeAssociations = (): void => {
     as: 'projects',
   });
 
+  // Task <-> Customer (Many-to-One, optional direct link)
+  Task.belongsTo(Customer, {
+    foreignKey: 'customerId',
+    as: 'customer',
+  });
+  Customer.hasMany(Task, {
+    foreignKey: 'customerId',
+    as: 'tasks',
+  });
+
   // Task <-> Project (Many-to-One)
   Task.belongsTo(Project, {
     foreignKey: 'projectId',
@@ -180,6 +250,16 @@ export const initializeAssociations = (): void => {
   Project.hasMany(Task, {
     foreignKey: 'projectId',
     as: 'tasks',
+  });
+
+  // Task <-> TaskAttachment (One-to-Many)
+  Task.hasMany(TaskAttachment, {
+    foreignKey: 'taskId',
+    as: 'attachments',
+  });
+  TaskAttachment.belongsTo(Task, {
+    foreignKey: 'taskId',
+    as: 'task',
   });
 
   // Task <-> User (assigned to)

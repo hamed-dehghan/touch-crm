@@ -4,7 +4,7 @@
  */
 
 import type { ApiClient } from './client';
-import type { CustomerRfmResponse, RfmScores } from '@/types/api';
+import type { CustomerRfmResponse, Pagination, RfmScores } from '@/types/api';
 import {
   users,
   roles,
@@ -58,6 +58,8 @@ const authApi: ApiClient['auth'] = {
   },
 };
 
+let mockCustomerCodeCounter = 5; // start after seeded data
+
 const customersApi: ApiClient['customers'] = {
   async list(params) {
     const { page = 1, limit = 20, search, status } = params || {};
@@ -67,8 +69,10 @@ const customersApi: ApiClient['customers'] = {
         (c) =>
           matchSearch(c.firstName ?? '', search) ||
           matchSearch(c.lastName ?? '', search) ||
-          matchSearch(c.phoneNumber, search) ||
-          matchSearch(c.email ?? '', search)
+          matchSearch(c.companyName ?? '', search) ||
+          matchSearch(c.brandName ?? '', search) ||
+          matchSearch(c.email ?? '', search) ||
+          matchSearch(c.customerCode ?? '', search)
       );
     }
     if (status) list = list.filter((c) => c.status === status);
@@ -81,28 +85,43 @@ const customersApi: ApiClient['customers'] = {
     return { success: true, data: { customer } };
   },
   async create(body) {
-    if (customers.some((c) => c.phoneNumber === body.phoneNumber)) {
-      return { success: false, error: { message: 'Phone number already exists', statusCode: 400 } };
-    }
     const id = getNextId('customer');
+    const customerCode = `C-${String(mockCustomerCodeCounter++).padStart(5, '0')}`;
     const level = body.customerLevelId ? customerLevels.find((l) => l.id === body.customerLevelId) : undefined;
     const customer: typeof customers[0] = {
       id,
+      customerCode,
+      customerType: body.customerType ?? 'NATURAL',
       firstName: body.firstName,
-      lastName: body.lastName!,
-      phoneNumber: body.phoneNumber!,
-      email: body.email,
-      birthDate: body.birthDate,
-      status: body.status ?? 'LEAD',
-      customerType: body.customerType ?? 'PERSON',
+      lastName: body.lastName,
       companyName: body.companyName,
-      address: body.address,
+      brandName: body.brandName,
+      isActive: body.isActive ?? true,
+      prefix: body.prefix,
+      gender: body.gender,
+      email: body.email,
       website: body.website,
+      status: body.status ?? 'LEAD',
+      relationshipType: body.relationshipType ?? 'CUSTOMER',
+      acquisitionChannel: body.acquisitionChannel,
       customerLevelId: body.customerLevelId,
       referredByCustomerId: body.referredByCustomerId,
+      interests: body.interests,
+      psychology: body.psychology,
+      catchphrases: body.catchphrases,
+      notablePoints: body.notablePoints,
+      birthDate: body.birthDate,
+      weddingAnniversary: body.weddingAnniversary,
+      profileImageUrl: body.profileImageUrl,
+      description: body.description,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       customerLevel: level,
+      phones: body.phones ?? [],
+      addresses: body.addresses ?? [],
+      socialMedia: body.socialMedia ?? [],
+      attachments: body.attachments ?? [],
+      relatedPersonnel: body.relatedPersonnel ?? [],
     };
     customers.push(customer);
     return { success: true, data: { customer } };
@@ -481,11 +500,11 @@ const tasksApi: ApiClient['tasks'] = {
   async list(params) {
     let list = [...tasks];
     if (params?.projectId) list = list.filter((t) => t.projectId === params.projectId);
+    if (params?.customerId) list = list.filter((t) => t.customerId === params.customerId);
     if (params?.status) list = list.filter((t) => t.status === params.status);
     return { success: true, data: { tasks: list } };
   },
   async getMyTasks() {
-    // In mock mode, return tasks assigned to user 1
     const list = tasks.filter((t) => t.assignedToUserId === 1);
     return { success: true, data: { tasks: list } };
   },
@@ -498,19 +517,26 @@ const tasksApi: ApiClient['tasks'] = {
     const id = getNextId('task');
     const assignedUser = users.find((u) => u.id === body.assignedToUserId);
     const project = body.projectId ? projects.find((p) => p.id === body.projectId) : undefined;
+    const customer = body.customerId ? customers.find((c) => c.id === body.customerId) : undefined;
     const task: typeof tasks[0] = {
       id,
       title: body.title!,
       description: body.description,
+      customerId: body.customerId,
       projectId: body.projectId,
       assignedToUserId: body.assignedToUserId!,
       createdByUserId: 1,
       dueDate: body.dueDate,
+      dueTime: body.dueTime,
+      reminderDaysBefore: body.reminderDaysBefore,
       status: 'PENDING',
       isRecurring: body.isRecurring ?? false,
       recurringIntervalDays: body.recurringIntervalDays,
+      recurringStartDate: body.recurringStartDate,
+      recurringEndDate: body.recurringEndDate,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      customer: customer ? { id: customer.id, firstName: customer.firstName, lastName: customer.lastName, companyName: customer.companyName } : undefined,
       project: project ? { id: project.id, projectName: project.projectName } : undefined,
       assignedTo: assignedUser ? { id: assignedUser.id, username: assignedUser.username, fullName: assignedUser.fullName } : undefined,
       createdBy: { id: 1, username: 'admin', fullName: 'مدیر سیستم' },
@@ -521,7 +547,18 @@ const tasksApi: ApiClient['tasks'] = {
   async update(id, body) {
     const idx = tasks.findIndex((t) => t.id === id);
     if (idx === -1) return { success: false, error: { message: 'Task not found', statusCode: 404 } };
-    tasks[idx] = { ...tasks[idx], ...body, updatedAt: new Date().toISOString() };
+    // Resolve nested relations if IDs changed
+    const customer = body.customerId ? customers.find((c) => c.id === body.customerId) : tasks[idx].customer;
+    const project = body.projectId ? projects.find((p) => p.id === body.projectId) : tasks[idx].project;
+    const assignedUser = body.assignedToUserId ? users.find((u) => u.id === body.assignedToUserId) : undefined;
+    tasks[idx] = {
+      ...tasks[idx],
+      ...body,
+      customer: customer ? { id: customer.id, firstName: customer.firstName, lastName: customer.lastName, companyName: customer.companyName } : undefined,
+      project: project ? { id: project.id, projectName: project.projectName } : undefined,
+      assignedTo: assignedUser ? { id: assignedUser.id, username: assignedUser.username, fullName: assignedUser.fullName } : tasks[idx].assignedTo,
+      updatedAt: new Date().toISOString(),
+    };
     return { success: true, data: { task: tasks[idx] } };
   },
   async updateStatus(id, status) {

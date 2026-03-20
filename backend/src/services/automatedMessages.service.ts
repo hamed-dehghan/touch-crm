@@ -1,9 +1,32 @@
 import { Op } from 'sequelize';
 import sequelize from '../config/database.js';
 import Customer from '../models/Customer.js';
+import CustomerPhone from '../models/CustomerPhone.js';
 import MessageQueue, { MessageStatus } from '../models/MessageQueue.js';
 import Order from '../models/Order.js';
 import CustomerLevel from '../models/CustomerLevel.js';
+
+/**
+ * Helper: get the default phone number for a customer
+ */
+const getDefaultPhone = async (customerId: number): Promise<string | null> => {
+  // First try to find a default phone
+  let phone = await CustomerPhone.findOne({
+    where: { customerId, isDefault: true },
+    attributes: ['phoneNumber'],
+  });
+
+  // Fallback to first phone
+  if (!phone) {
+    phone = await CustomerPhone.findOne({
+      where: { customerId },
+      attributes: ['phoneNumber'],
+      order: [['id', 'ASC']],
+    });
+  }
+
+  return phone?.phoneNumber ?? null;
+};
 
 /**
  * Send birthday messages to customers
@@ -16,6 +39,7 @@ export const sendBirthdayMessages = async (): Promise<number> => {
   // Find customers with birthday today
   const customers = await Customer.findAll({
     where: {
+      isActive: true,
       [Op.and]: [
         sequelize.where(sequelize.fn('EXTRACT', sequelize.literal('MONTH FROM birth_date')), month),
         sequelize.where(sequelize.fn('EXTRACT', sequelize.literal('DAY FROM birth_date')), day),
@@ -28,6 +52,12 @@ export const sendBirthdayMessages = async (): Promise<number> => {
         attributes: ['levelName'],
         required: false,
       },
+      {
+        model: CustomerPhone,
+        as: 'phones',
+        where: { isDefault: true },
+        required: false,
+      },
     ],
   });
 
@@ -37,24 +67,31 @@ export const sendBirthdayMessages = async (): Promise<number> => {
 
   const messageTemplate = '🎉 Happy Birthday [FirstName]! We wish you a wonderful day filled with joy. Thank you for being a valued [Level] member!';
 
-  const messages = customers.map((customer: any) => {
+  const messages: any[] = [];
+  for (const customer of customers) {
+    const phones = (customer as any).phones as CustomerPhone[];
+    const phoneNumber = phones?.[0]?.phoneNumber ?? await getDefaultPhone(customer.id);
+    if (!phoneNumber) continue; // skip if no phone number
+
     let message = messageTemplate;
     message = message.replace(/\[FirstName\]/g, customer.firstName || 'Valued Customer');
-    message = message.replace(/\[Level\]/g, customer.customerLevel?.levelName || 'member');
+    message = message.replace(/\[Level\]/g, (customer as any).customerLevel?.levelName || 'member');
 
-    return {
+    messages.push({
       customerId: customer.id,
-      phoneNumber: customer.phoneNumber,
+      phoneNumber,
       messageText: message,
       status: MessageStatus.PENDING,
       scheduledFor: new Date(),
       retryCount: 0,
-    };
-  });
+    });
+  }
 
-  await MessageQueue.bulkCreate(messages);
+  if (messages.length > 0) {
+    await MessageQueue.bulkCreate(messages);
+  }
 
-  return customers.length;
+  return messages.length;
 };
 
 /**
@@ -79,7 +116,8 @@ export const sendInactivityMessages = async (daysInactive: number = 60): Promise
   const inactiveCustomers = await Customer.findAll({
     where: {
       id: { [Op.notIn]: customerIdsWithRecentOrders },
-      status: 'CUSTOMER', // Only active customers
+      status: 'CUSTOMER',
+      isActive: true,
     },
     include: [
       {
@@ -97,23 +135,29 @@ export const sendInactivityMessages = async (daysInactive: number = 60): Promise
 
   const messageTemplate = `Hi [FirstName], we miss you! It's been a while since your last purchase. Check out our latest offers and come back soon!`;
 
-  const messages = inactiveCustomers.map((customer) => {
+  const messages: any[] = [];
+  for (const customer of inactiveCustomers) {
+    const phoneNumber = await getDefaultPhone(customer.id);
+    if (!phoneNumber) continue;
+
     let message = messageTemplate;
     message = message.replace(/\[FirstName\]/g, customer.firstName || 'Valued Customer');
 
-    return {
+    messages.push({
       customerId: customer.id,
-      phoneNumber: customer.phoneNumber,
+      phoneNumber,
       messageText: message,
       status: MessageStatus.PENDING,
       scheduledFor: new Date(),
       retryCount: 0,
-    };
-  });
+    });
+  }
 
-  await MessageQueue.bulkCreate(messages);
+  if (messages.length > 0) {
+    await MessageQueue.bulkCreate(messages);
+  }
 
-  return inactiveCustomers.length;
+  return messages.length;
 };
 
 /**
@@ -135,6 +179,9 @@ export const sendWelcomeMessage = async (customerId: number): Promise<void> => {
     return;
   }
 
+  const phoneNumber = await getDefaultPhone(customerId);
+  if (!phoneNumber) return;
+
   const messageTemplate = `Welcome [FirstName]! Thank you for joining us. We're excited to have you as a [Level] member!`;
 
   let message = messageTemplate;
@@ -143,7 +190,7 @@ export const sendWelcomeMessage = async (customerId: number): Promise<void> => {
 
   await MessageQueue.create({
     customerId: customer.id,
-    phoneNumber: customer.phoneNumber,
+    phoneNumber,
     messageText: message,
     status: MessageStatus.PENDING,
     scheduledFor: new Date(),

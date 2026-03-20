@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -9,42 +9,17 @@ import { Input } from '@/components/ui/Input';
 import { PersianDatePicker } from '@/components/ui/DatePicker';
 import { CustomerEditLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
+/**
+ * Redirect to customer detail page.
+ * Editing is now handled via the modal on the detail page.
+ */
 export default function EditCustomerPage() {
   const params = useParams();
   const router = useRouter();
-  const id = Number(params.id);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    phoneNumber: '',
-    email: '',
-    birthDate: '',
-    status: 'LEAD' as 'LEAD' | 'OPPORTUNITY' | 'CUSTOMER',
-    customerLevelId: '',
-  });
 
   useEffect(() => {
-    if (Number.isNaN(id)) return;
-    (async () => {
-      const res = await api.customers.getById(id);
-      if (res.success && res.data) {
-        const c = res.data.customer;
-        setForm({
-          firstName: c.firstName ?? '',
-          lastName: c.lastName ?? '',
-          phoneNumber: c.phoneNumber ?? '',
-          email: c.email ?? '',
-          birthDate: c.birthDate ?? '',
-          status: c.status,
-          customerLevelId: c.customerLevelId?.toString() ?? '',
-        });
-      }
-      setLoading(false);
-    })();
-  }, [id]);
+    router.replace(`/customers/${params.id}`);
+  }, [params.id, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

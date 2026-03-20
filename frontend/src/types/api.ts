@@ -39,26 +39,97 @@ export interface CustomerLevel {
   updatedAt?: string;
 }
 
-export type CustomerStatus = 'LEAD' | 'OPPORTUNITY' | 'CUSTOMER';
-export type CustomerType = 'PERSON' | 'COMPANY';
+export type CustomerStatus = 'LEAD' | 'OPPORTUNITY' | 'CUSTOMER' | 'LOST';
+export type CustomerType = 'NATURAL' | 'LEGAL';
+export type Gender = 'MALE' | 'FEMALE';
+export type RelationshipType = 'CUSTOMER' | 'SUPPLIER' | 'AGENT' | 'COMPETITOR' | 'INTERNAL_STAFF';
+export type AcquisitionChannel = 'INSTAGRAM' | 'EXHIBITION' | 'WEBSITE' | 'REFERRAL' | 'EVENT' | 'PREVIOUS_ACQUAINTANCE' | 'OTHER';
+export type PhoneType = 'MOBILE' | 'LANDLINE';
+export type SocialMediaPlatform = 'INSTAGRAM' | 'TELEGRAM' | 'WHATSAPP' | 'LINKEDIN' | 'TWITTER' | 'OTHER';
+
+/* ── Customer child records ── */
+
+export interface CustomerPhone {
+  id?: number;
+  customerId?: number;
+  phoneNumber: string;
+  phoneType: PhoneType;
+  label?: string;
+  extension?: string;
+  isDefault: boolean;
+}
+
+export interface CustomerAddress {
+  id?: number;
+  customerId?: number;
+  province?: string;
+  city?: string;
+  address?: string;
+  postalCode?: string;
+  isDefault: boolean;
+}
+
+export interface CustomerSocialMedia {
+  id?: number;
+  customerId?: number;
+  platform: SocialMediaPlatform;
+  profileUrl: string;
+}
+
+export interface CustomerAttachment {
+  id?: number;
+  customerId?: number;
+  fileName: string;
+  filePath: string;
+  fileType?: string;
+  description?: string;
+  createdAt?: string;
+}
+
+export interface CustomerRelatedPersonnel {
+  id?: number;
+  legalCustomerId?: number;
+  naturalCustomerId: number;
+  position?: string;
+  naturalCustomer?: { id: number; firstName?: string; lastName?: string; customerCode: string };
+}
+
+/* ── Customer (expanded) ── */
 
 export interface Customer {
   id: number;
-  firstName?: string;
-  lastName: string;
-  phoneNumber: string;
-  email?: string;
-  birthDate?: string;
-  status: CustomerStatus;
+  customerCode: string;
   customerType: CustomerType;
+  firstName?: string;
+  lastName?: string;
   companyName?: string;
-  address?: string;
+  brandName?: string;
+  isActive: boolean;
+  prefix?: string;
+  gender?: Gender;
+  email?: string;
   website?: string;
+  status: CustomerStatus;
+  relationshipType: RelationshipType;
+  acquisitionChannel?: AcquisitionChannel;
   customerLevelId?: number;
   referredByCustomerId?: number;
+  interests?: string;
+  psychology?: string;
+  catchphrases?: string;
+  notablePoints?: string;
+  birthDate?: string;
+  weddingAnniversary?: string;
+  profileImageUrl?: string;
+  description?: string;
   createdAt?: string;
   updatedAt?: string;
   customerLevel?: CustomerLevel;
+  phones?: CustomerPhone[];
+  addresses?: CustomerAddress[];
+  socialMedia?: CustomerSocialMedia[];
+  attachments?: CustomerAttachment[];
+  relatedPersonnel?: CustomerRelatedPersonnel[];
 }
 
 export interface Product {
@@ -154,25 +225,43 @@ export interface Campaign {
 }
 
 /* ── Task ── */
-export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type TaskStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED';
+
+export interface TaskAttachment {
+  id: number;
+  taskId: number;
+  fileName: string;
+  filePath: string;
+  fileType?: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface Task {
   id: number;
   title: string;
   description?: string;
+  customerId?: number;
   projectId?: number;
   assignedToUserId: number;
   createdByUserId: number;
   dueDate?: string;
+  dueTime?: string;
+  reminderDaysBefore?: number;
   status: TaskStatus;
   isRecurring: boolean;
   recurringIntervalDays?: number;
+  recurringStartDate?: string;
+  recurringEndDate?: string;
   lastTriggeredAt?: string;
   createdAt?: string;
   updatedAt?: string;
+  customer?: { id: number; firstName?: string; lastName?: string; companyName?: string };
   project?: { id: number; projectName: string };
   assignedTo?: { id: number; username: string; fullName?: string };
   createdBy?: { id: number; username: string; fullName?: string };
+  attachments?: TaskAttachment[];
 }
 
 /* ── Project ── */
@@ -186,7 +275,7 @@ export interface Project {
   description?: string;
   createdAt?: string;
   updatedAt?: string;
-  customer?: { id: number; firstName?: string; lastName: string };
+  customer?: { id: number; firstName?: string; lastName?: string };
 }
 
 /* ── WorkLog ── */
@@ -202,7 +291,7 @@ export interface WorkLog {
   createdAt?: string;
   updatedAt?: string;
   loggedBy?: { id: number; username: string; fullName?: string };
-  customer?: { id: number; firstName?: string; lastName: string };
+  customer?: { id: number; firstName?: string; lastName?: string };
   task?: { id: number; title: string };
 }
 
