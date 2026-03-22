@@ -7,7 +7,14 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAppDialogs } from '@/components/ui/AppDialogs';
-import { DataTable, type DataTableColumn, type DataTableAction } from '@/components/ui/DataTable';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableAction,
+  type DataTableFilter,
+  type FilterToken,
+} from '@/components/ui/DataTable';
+import { formatGregorianToJalali } from '@/utils/date';
 
 export default function ProductsPage() {
   const dialogs = useAppDialogs();
@@ -19,11 +26,32 @@ export default function ProductsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchProducts = useCallback(
-    async (params: { page: number; limit: number; search: string }) => {
+    async (params: {
+      page: number;
+      limit: number;
+      search: string;
+      filters?: FilterToken[];
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    }) => {
+      const filtersPayload =
+        params.filters && params.filters.length > 0
+          ? JSON.stringify(
+              params.filters.map((f) => ({
+                key: f.key,
+                operator: f.operator,
+                value: f.value,
+              })),
+            )
+          : undefined;
+
       const res = await api.products.list({
         page: params.page,
         limit: params.limit,
         search: params.search || undefined,
+        filters: filtersPayload,
+        sortBy: params.sortBy,
+        sortOrder: params.sortOrder,
       });
 
       if (res.success && res.data) {
@@ -91,35 +119,57 @@ export default function ProductsPage() {
     if (res.success) setRefreshKey((k) => k + 1);
   };
 
+  const handleBulkDelete = async (selected: Product[]) => {
+    if (selected.length === 0) return;
+
+    const ok = await dialogs.confirm('آیا از حذف محصولات انتخاب شده مطمئنید؟', {
+      danger: true,
+      confirmText: 'حذف',
+    });
+    if (!ok) return;
+
+    const results = await Promise.all(selected.map((p) => api.products.delete(p.id)));
+    const failed = results.find((r) => !r.success);
+
+    if (failed) {
+      await dialogs.alert(failed.error?.message ?? 'خطا در حذف گروهی');
+      return;
+    }
+
+    setRefreshKey((k) => k + 1);
+  };
+
   const columns: DataTableColumn<Product>[] = [
     {
       key: 'id',
       title: 'شناسه',
       width: '80px',
+      sortable: true,
       render: (row) => row.id.toLocaleString('fa-IR'),
     },
     {
       key: 'productName',
       title: 'نام محصول',
       sticky: true,
+      sortable: true,
     },
     {
       key: 'price',
       title: 'قیمت (ریال)',
+      sortable: true,
       render: (row) => row.price.toLocaleString('fa-IR'),
     },
     {
       key: 'taxRate',
       title: 'نرخ مالیات',
+      sortable: true,
       render: (row) => `${row.taxRate}%`,
     },
     {
       key: 'createdAt',
       title: 'تاریخ ایجاد',
-      render: (row) =>
-        row.createdAt
-          ? new Date(row.createdAt).toLocaleDateString('fa-IR')
-          : '—',
+      sortable: true,
+      render: (row) => (row.createdAt ? formatGregorianToJalali(row.createdAt) : '—'),
     },
   ];
 
@@ -129,6 +179,7 @@ export default function ProductsPage() {
       onClick: startEdit,
       variant: 'primary',
       icon: <PencilIcon className="w-3.5 h-3.5" />,
+      triggerOnRowDoubleClick: true,
     },
     {
       label: 'حذف',
@@ -136,6 +187,22 @@ export default function ProductsPage() {
       variant: 'danger',
       icon: <TrashIcon className="w-3.5 h-3.5" />,
     },
+  ];
+
+  const groupActions = [
+    {
+      label: 'حذف انتخاب شده',
+      onClick: handleBulkDelete,
+      variant: 'danger' as const,
+      icon: <TrashIcon className="w-3.5 h-3.5" />,
+    },
+  ];
+
+  const productFilters: DataTableFilter[] = [
+    { key: 'productName', label: 'نام محصول', type: 'text' },
+    { key: 'price', label: 'قیمت', type: 'number' },
+    { key: 'taxRate', label: 'نرخ مالیات', type: 'number' },
+    { key: 'createdAt', label: 'تاریخ ایجاد', type: 'date' },
   ];
 
   return (
@@ -215,11 +282,14 @@ export default function ProductsPage() {
           <DataTable<Product>
             columns={columns}
             actions={actions}
+            groupActions={groupActions}
+            selectableRows
             fetchData={fetchProducts}
             rowKey={(row) => row.id}
-            searchPlaceholder="جستجوی نام محصول..."
+            searchPlaceholder="چند فیلتر اضافه کنید، سپس دکمه جستجو را بزنید..."
             pageSize={10}
             emptyMessage="محصولی یافت نشد."
+            filters={productFilters}
           />
         </CardContent>
       </Card>

@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
 import Role from '../models/Role.js';
 import Permission from '../models/Permission.js';
 import RolePermission from '../models/RolePermission.js';
 import User from '../models/User.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
+import { getBasicSearchString, orILike, parsePagination } from '../utils/search.utils.js';
 
 /**
  * @swagger
@@ -13,17 +15,49 @@ import { NotFoundError, ValidationError } from '../utils/errors.js';
  *     tags: [Roles]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         description: Basic search on role name and description
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of roles
  */
 export const getRoles = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const roles = await Role.findAll({
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
+
+    const baseWhere: Record<string, unknown> = {};
+    const searchWhere =
+      q
+        ? {
+            [Op.and]: [baseWhere, orILike(['roleName', 'description'], q)],
+          }
+        : baseWhere;
+
+    const { count, rows } = await Role.findAndCountAll({
+      where: searchWhere,
+      limit,
+      offset,
       include: [
         {
           model: Permission,
@@ -35,7 +69,7 @@ export const getRoles = async (
       order: [['createdAt', 'ASC']],
     });
 
-    const rolesWithCount = roles.map((role: any) => ({
+    const rolesWithCount = rows.map((role: any) => ({
       id: role.id,
       roleName: role.roleName,
       description: role.description,
@@ -49,6 +83,12 @@ export const getRoles = async (
       success: true,
       data: {
         roles: rolesWithCount,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil(count / limit),
+        },
       },
     });
   } catch (error) {
@@ -280,24 +320,72 @@ export const deleteRole = async (
  *     tags: [Roles]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         description: Basic search on action code, resource, description
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: resource
+ *         description: Advanced filter — exact resource key
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of permissions
  */
 export const getPermissions = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const permissions = await Permission.findAll({
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
+    const { resource } = req.query;
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
+
+    const where: Record<string, unknown> = {};
+    if (resource !== undefined && resource !== '') {
+      where.resource = resource;
+    }
+
+    const searchWhere =
+      q
+        ? {
+            [Op.and]: [where, orILike(['actionCode', 'resource', 'description'], q)],
+          }
+        : where;
+
+    const { count, rows } = await Permission.findAndCountAll({
+      where: searchWhere,
+      limit,
+      offset,
       order: [['resource', 'ASC'], ['actionCode', 'ASC']],
     });
 
     res.json({
       success: true,
       data: {
-        permissions,
+        permissions: rows,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil(count / limit),
+        },
       },
     });
   } catch (error) {

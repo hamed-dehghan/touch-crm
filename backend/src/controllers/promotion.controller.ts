@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
 import Promotion, { RewardType } from '../models/Promotion.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import CustomerPromotion from '../models/CustomerPromotion.js';
+import { getBasicSearchString, orILike, parsePagination } from '../utils/search.utils.js';
 
 /**
  * @swagger
@@ -90,24 +92,83 @@ export const createPromotion = async (
  *     tags: [Promotions]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         description: Basic search on title
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         description: Same as `q` (legacy)
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: rewardType
+ *         description: Advanced filter
+ *         schema:
+ *           type: string
+ *           enum: [PERCENTAGE, FIXED_AMOUNT]
+ *       - in: query
+ *         name: isActive
+ *         description: Advanced filter
+ *         schema:
+ *           type: string
+ *           enum: ['true', 'false']
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of promotions
  */
 export const getPromotions = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const promotions = await Promotion.findAll({
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
+    const { rewardType, isActive } = req.query;
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
+
+    const where: Record<string, unknown> = {};
+    if (rewardType) {
+      where.rewardType = rewardType;
+    }
+    if (isActive !== undefined && isActive !== '') {
+      where.isActive = isActive === 'true';
+    }
+
+    const searchWhere =
+      q
+        ? {
+            [Op.and]: [where, orILike(['title'], q)],
+          }
+        : where;
+
+    const { count, rows } = await Promotion.findAndCountAll({
+      where: searchWhere,
+      limit,
+      offset,
       order: [['createdAt', 'DESC']],
     });
 
     res.json({
       success: true,
       data: {
-        promotions,
+        promotions: rows,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil(count / limit),
+        },
       },
     });
   } catch (error) {

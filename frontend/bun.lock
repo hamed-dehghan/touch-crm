@@ -5,6 +5,7 @@
     "": {
       "name": "frontend",
       "dependencies": {
+        "@svar-ui/react-grid": "^2.5.2",
         "axios": "^1.7.9",
         "next": "16.1.6",
         "react": "19.2.3",
@@ -190,6 +191,48 @@
     "@nolyfill/is-core-module": ["@nolyfill/is-core-module@1.0.39", "https://registry.npmmirror.com/@nolyfill/is-core-module/-/is-core-module-1.0.39.tgz", {}, "sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA=="],
 
     "@rtsao/scc": ["@rtsao/scc@1.1.0", "https://registry.npmmirror.com/@rtsao/scc/-/scc-1.1.0.tgz", {}, "sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g=="],
+
+    "@svar-ui/comments-locales": ["@svar-ui/comments-locales@2.4.0", "https://registry.npmmirror.com/@svar-ui/comments-locales/-/comments-locales-2.4.0.tgz", {}, "sha512-StcviQBWrfs4iulgNAb7rjycBe6fsv2/UvmeZpHNHSvSGCMF+q5Cx0FczwgCXd+dVQI6QPhfOPunmu64hzgIWg=="],
+
+    "@svar-ui/core-locales": ["@svar-ui/core-locales@2.5.0", "https://registry.npmmirror.com/@svar-ui/core-locales/-/core-locales-2.5.0.tgz", {}, "sha512-vL8y8B1/YeHd89cd6x5jzSWLxYxNICXZY2Gx4+Op26L8N8IhCR26r8fpuptugodKLIQkyua3fh27ZB+5sJSXHg=="],
+
+    "@svar-ui/editor-locales": ["@svar-ui/editor-locales@2.4.0", "https://registry.npmmirror.com/@svar-ui/editor-locales/-/editor-locales-2.4.0.tgz", {}, "sha512-ngo2vdAxdpYeEhCfIJstyKP6mY7uE3hDI7xpzkN8d92DJcrdgCquYTAkI7UV94FGlfGMfGM2DFnXYSuQwLYB9w=="],
+
+    "@svar-ui/filter-locales": ["@svar-ui/filter-locales@2.4.0", "https://registry.npmmirror.com/@svar-ui/filter-locales/-/filter-locales-2.4.0.tgz", {}, "sha512-POV7u7xM9O84i5HnWKQ9LfWyfvmVgFOl0wDO+Ix6MfugPkj14pX6FLvuooyXwfUNMV6G6hS7AuKlNR5SlW94ZA=="],
+
+    "@svar-ui/filter-store": ["@svar-ui/filter-store@2.4.0", "https://registry.npmmirror.com/@svar-ui/filter-store/-/filter-store-2.4.0.tgz", { "dependencies": { "@svar-ui/lib-state": "1.9.6" } }, "sha512-xEnVZXuDFxduHfqq+r1YjditolB1FpHHFGK87WOjTrtIPmiiKCQF2vt5LKJuswUQPbG3kMW93EAvZWZVCnKeKA=="],
+
+    "@svar-ui/grid-data-provider": ["@svar-ui/grid-data-provider@2.5.0", "https://registry.npmmirror.com/@svar-ui/grid-data-provider/-/grid-data-provider-2.5.0.tgz", { "dependencies": { "@svar-ui/lib-data-provider": "1.7.1" } }, "sha512-jI7cPJ9f+ozUoT9IYwHG8coeGvICp6iGI3F4IOLcJ7Hb0/NGaRwz1l0EIt7GjNeJodEIlbpdUZhfbIPSfErx6Q=="],
+
+    "@svar-ui/grid-locales": ["@svar-ui/grid-locales@2.5.0", "https://registry.npmmirror.com/@svar-ui/grid-locales/-/grid-locales-2.5.0.tgz", {}, "sha512-xzNE0IRFCeu0KyMNI1CT40sHU5YrvlyWiYk0sMNvUGnC7n+5wfdWeRdAILeZkwXjM4keCl8qhUfTPiMpVYyyGw=="],
+
+    "@svar-ui/grid-store": ["@svar-ui/grid-store@2.5.0", "https://registry.npmmirror.com/@svar-ui/grid-store/-/grid-store-2.5.0.tgz", { "dependencies": { "@svar-ui/lib-dom": "0.11.1", "@svar-ui/lib-state": "1.9.6" } }, "sha512-Y5x+M5HANyohP7xExIPFzyMCtf5ABVbEwfac/Q7eY5UPUq2eUszfHgqn1YmyV5F7s+YpIXpD0Ed4kMW7MoaEIg=="],
+
+    "@svar-ui/lib-data-provider": ["@svar-ui/lib-data-provider@1.7.1", "https://registry.npmmirror.com/@svar-ui/lib-data-provider/-/lib-data-provider-1.7.1.tgz", { "dependencies": { "@svar-ui/lib-state": "1.9.6" } }, "sha512-5Bi9ywngcMTKpGtan0s7q8ivd84Bp0ZnRP+5bLZg6oiRB7YMyN5D5X+apc3CWDAnG4zZn3en4YwS2qc/aHIIuQ=="],
+
+    "@svar-ui/lib-dom": ["@svar-ui/lib-dom@0.11.1", "https://registry.npmmirror.com/@svar-ui/lib-dom/-/lib-dom-0.11.1.tgz", {}, "sha512-4wgerhDVttvrQ9t6OjHur34Of+VVr2VygA16HHGcWHytgdnOuGgfZb5PeBEhCJw/pO3RKfJvBHbaMIzL4IR//g=="],
+
+    "@svar-ui/lib-react": ["@svar-ui/lib-react@1.2.2", "https://registry.npmmirror.com/@svar-ui/lib-react/-/lib-react-1.2.2.tgz", { "dependencies": { "@svar-ui/lib-dom": "^0.11.1" } }, "sha512-bB+Vou2NM0JhMuFW03MsjjoV5Y3xcFfuuK48+7uzUC9Ui1oSWpCK+txOZ+dnUFJISSVjSsXuF34AzMw/2CA63w=="],
+
+    "@svar-ui/lib-state": ["@svar-ui/lib-state@1.9.6", "https://registry.npmmirror.com/@svar-ui/lib-state/-/lib-state-1.9.6.tgz", {}, "sha512-twoHa8wZvzdxtES68s6Wnp4Xi1WivScNaFFK6sJ6WDgqVYOzJw0ZhVVrdwHQgieLITTKl/DYh/U3nuqtMetKYw=="],
+
+    "@svar-ui/react-comments": ["@svar-ui/react-comments@2.4.3", "https://registry.npmmirror.com/@svar-ui/react-comments/-/react-comments-2.4.3.tgz", { "dependencies": { "@svar-ui/comments-locales": "2.4.0", "@svar-ui/core-locales": "2.4.0", "@svar-ui/lib-data-provider": "1.7.1", "@svar-ui/lib-dom": "0.11.1", "@svar-ui/lib-state": "1.9.6", "@svar-ui/react-core": "2.4.3", "@svar-ui/react-menu": "2.4.3" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-hwx3g0LPIBIBbO/YniLvNRaSwxlC/J0Uo2h2BK5N/FszwcBwruYkHBcXI0CEGpJltEaWHYKeO1hF0U5D2SzeBQ=="],
+
+    "@svar-ui/react-core": ["@svar-ui/react-core@2.4.3", "https://registry.npmmirror.com/@svar-ui/react-core/-/react-core-2.4.3.tgz", { "dependencies": { "@svar-ui/core-locales": "^2.4.0", "@svar-ui/lib-dom": "0.11.1", "@svar-ui/lib-react": "1.2.2" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-ufyK48znpYyV+99mb0e44u4aoZN/D/aQxCy58z4xmNWJmQvPFhCu+5QVwnodh9BUbmRp8OHAQjugBAF1eL1doQ=="],
+
+    "@svar-ui/react-editor": ["@svar-ui/react-editor@2.4.3", "https://registry.npmmirror.com/@svar-ui/react-editor/-/react-editor-2.4.3.tgz", { "dependencies": { "@svar-ui/editor-locales": "2.4.0", "@svar-ui/lib-dom": "0.11.1", "@svar-ui/lib-state": "1.9.6", "@svar-ui/react-comments": "2.4.3", "@svar-ui/react-core": "2.4.3", "@svar-ui/react-tasklist": "2.4.3", "@svar-ui/react-toolbar": "2.4.3" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-cAd7ASRoezGaMdPXQ7EuuKHYRNOr60OOqPvP2gmn+j2cF0ofRRHpo0G5kTwgQws3MmzAlYP3WOXe0gEMZ81iwg=="],
+
+    "@svar-ui/react-filter": ["@svar-ui/react-filter@2.4.3", "https://registry.npmmirror.com/@svar-ui/react-filter/-/react-filter-2.4.3.tgz", { "dependencies": { "@svar-ui/filter-locales": "2.4.0", "@svar-ui/filter-store": "2.4.0", "@svar-ui/lib-dom": "0.11.1", "@svar-ui/lib-react": "1.2.2", "@svar-ui/lib-state": "1.9.6", "@svar-ui/react-core": "2.4.3", "@svar-ui/react-menu": "2.4.3" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-fO9rK0nJEDUf9dQuUKdNOECHDIwuFhSEp27tDDAfSFYOOzOy+ysObs6yMSQ5I8PmCUv/gkIsxu4cYR+Pm4xnJg=="],
+
+    "@svar-ui/react-grid": ["@svar-ui/react-grid@2.5.2", "https://registry.npmmirror.com/@svar-ui/react-grid/-/react-grid-2.5.2.tgz", { "dependencies": { "@svar-ui/grid-data-provider": "2.5.0", "@svar-ui/grid-locales": "2.5.0", "@svar-ui/grid-store": "2.5.0", "@svar-ui/lib-dom": "0.11.1", "@svar-ui/lib-react": "1.2.2", "@svar-ui/lib-state": "1.9.6", "@svar-ui/react-core": "2.4.3", "@svar-ui/react-editor": "2.4.3", "@svar-ui/react-filter": "2.4.3", "@svar-ui/react-menu": "2.4.3" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-IwvTLWfSjhnIST+KCQ/ZM1R43I2MCereptaVidpXAqq80edIKUhh5HiZebEy8Sl2uxmm2q46Et4F//cO5YdtBA=="],
+
+    "@svar-ui/react-menu": ["@svar-ui/react-menu@2.4.3", "https://registry.npmmirror.com/@svar-ui/react-menu/-/react-menu-2.4.3.tgz", { "dependencies": { "@svar-ui/core-locales": "2.4.0", "@svar-ui/lib-dom": "0.11.1", "@svar-ui/react-core": "2.4.3" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-c3d6CxeJS3/mA6lkQZY4c8AblRk1oRi0xfADktcrxLVKiyzrwn8alEUJ6QqWlGK7TjCHX/IPsWwRK4e32FrjJA=="],
+
+    "@svar-ui/react-tasklist": ["@svar-ui/react-tasklist@2.4.3", "https://registry.npmmirror.com/@svar-ui/react-tasklist/-/react-tasklist-2.4.3.tgz", { "dependencies": { "@svar-ui/lib-data-provider": "1.7.1", "@svar-ui/lib-dom": "0.11.1", "@svar-ui/lib-state": "1.9.6", "@svar-ui/react-core": "2.4.3", "@svar-ui/tasklist-locales": "2.4.0" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-M7BgmfzUZq6XM+/OcRVRh78baa66pDXtV+w/xhLWSHbSOP8LcTZgJQJm3CxjucRSB4SpN9+Yw0dA/E5EZJLT8A=="],
+
+    "@svar-ui/react-toolbar": ["@svar-ui/react-toolbar@2.4.3", "https://registry.npmmirror.com/@svar-ui/react-toolbar/-/react-toolbar-2.4.3.tgz", { "dependencies": { "@svar-ui/core-locales": "2.4.0", "@svar-ui/lib-dom": "0.11.1", "@svar-ui/react-core": "2.4.3" }, "peerDependencies": { "react": ">=18", "react-dom": ">=18" } }, "sha512-w9qMxDhmOw2PJRZM9gGLQ7oAhY1ImVfUeGrdG2Mg5D9uo1R6sX74zV3DxaRoRbO79PIqaPgY6ROwQoG00V+/Ow=="],
+
+    "@svar-ui/tasklist-locales": ["@svar-ui/tasklist-locales@2.4.0", "https://registry.npmmirror.com/@svar-ui/tasklist-locales/-/tasklist-locales-2.4.0.tgz", {}, "sha512-gcclKwfShkTiZaYCl9blfOiUqVwcEv8qtyNoKfEhli4FWjjG4sysue27CvHD2qFZAjoRYQi2hoQ4odLM1AO7tQ=="],
 
     "@swc/helpers": ["@swc/helpers@0.5.15", "https://registry.npmmirror.com/@swc/helpers/-/helpers-0.5.15.tgz", { "dependencies": { "tslib": "^2.8.0" } }, "sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g=="],
 
@@ -948,6 +991,12 @@
     "@eslint-community/eslint-utils/eslint-visitor-keys": ["eslint-visitor-keys@3.4.3", "https://registry.npmmirror.com/eslint-visitor-keys/-/eslint-visitor-keys-3.4.3.tgz", {}, "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag=="],
 
     "@eslint/eslintrc/globals": ["globals@14.0.0", "https://registry.npmmirror.com/globals/-/globals-14.0.0.tgz", {}, "sha512-oahGvuMGQlPw/ivIYBjVSrWAfWLBeku5tpPE2fOPLi+WHffIWbuh2tCjhyQhTBPMf5E9jDEH4FOmTYgYwbKwtQ=="],
+
+    "@svar-ui/react-comments/@svar-ui/core-locales": ["@svar-ui/core-locales@2.4.0", "https://registry.npmmirror.com/@svar-ui/core-locales/-/core-locales-2.4.0.tgz", {}, "sha512-FXB4MtqbZw4TNdPfELsMum6y5Tgu0PRA7a6upJjLWDYJjlcYEcyT49iJONb30gPIL7HgJkUylJnz6iNuNA3Icw=="],
+
+    "@svar-ui/react-menu/@svar-ui/core-locales": ["@svar-ui/core-locales@2.4.0", "https://registry.npmmirror.com/@svar-ui/core-locales/-/core-locales-2.4.0.tgz", {}, "sha512-FXB4MtqbZw4TNdPfELsMum6y5Tgu0PRA7a6upJjLWDYJjlcYEcyT49iJONb30gPIL7HgJkUylJnz6iNuNA3Icw=="],
+
+    "@svar-ui/react-toolbar/@svar-ui/core-locales": ["@svar-ui/core-locales@2.4.0", "https://registry.npmmirror.com/@svar-ui/core-locales/-/core-locales-2.4.0.tgz", {}, "sha512-FXB4MtqbZw4TNdPfELsMum6y5Tgu0PRA7a6upJjLWDYJjlcYEcyT49iJONb30gPIL7HgJkUylJnz6iNuNA3Icw=="],
 
     "@tailwindcss/oxide-wasm32-wasi/@emnapi/core": ["@emnapi/core@1.8.1", "https://registry.npmmirror.com/@emnapi/core/-/core-1.8.1.tgz", { "dependencies": { "@emnapi/wasi-threads": "1.1.0", "tslib": "^2.4.0" }, "bundled": true }, "sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg=="],
 

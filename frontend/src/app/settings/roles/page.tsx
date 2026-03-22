@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { Role, Permission } from '@/types/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -8,33 +8,76 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useAppDialogs } from '@/components/ui/AppDialogs';
-import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableAction,
+  type DataTableGroupAction,
+  type DataTableFilter,
+  type FilterToken,
+} from '@/components/ui/DataTable';
+import { filterRowsBySearch, paginateSlice, sortRows } from '@/lib/clientListQuery';
+import { filterRowsByTokens, matchNumberCell, matchTextCell } from '@/lib/filterTokens';
+
+const roleFilterDefinitions: DataTableFilter[] = [
+  { key: 'roleName', label: 'نام نقش', type: 'text' },
+  { key: 'description', label: 'توضیحات', type: 'text' },
+  { key: 'permissionCount', label: 'تعداد مجوز', type: 'number' },
+];
+
+type RoleRow = Role & { permissionCount: number; permissions?: Permission[] };
 
 export default function RolesPage() {
   const dialogs = useAppDialogs();
-  const [roles, setRoles] = useState<(Role & { permissionCount: number; permissions?: Permission[] })[]>([]);
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ roleName: '', description: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  // Permission assignment
   const [assignRoleId, setAssignRoleId] = useState<number | null>(null);
+  const [assignRoleName, setAssignRoleName] = useState('');
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([]);
+  const [savedTick, setSavedTick] = useState(0);
 
-  const fetchData = () => {
-    setLoading(true);
-    Promise.all([api.roles.list(), api.roles.getPermissions()]).then(([rRes, pRes]) => {
-      if (rRes.success && rRes.data) setRoles(rRes.data.roles);
+  useEffect(() => {
+    api.roles.getPermissions().then((pRes) => {
       if (pRes.success && pRes.data) setAllPermissions(pRes.data.permissions);
-      setLoading(false);
     });
-  };
+  }, []);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
-  useEffect(() => { fetchData(); }, []);
+  const fetchRoles = useCallback(
+    async (params: {
+      page: number;
+      limit: number;
+      search: string;
+      filters?: FilterToken[];
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    }) => {
+      const rRes = await api.roles.list();
+      if (!rRes.success || !rRes.data) {
+        return {
+          rows: [] as RoleRow[],
+          pagination: { page: 1, limit: params.limit, total: 0, totalPages: 0 },
+        };
+      }
+      let rows = [...rRes.data.roles] as RoleRow[];
+      rows = filterRowsByTokens(rows, params.filters, {
+        roleName: (r, op, v) => matchTextCell(r.roleName, op, v),
+        description: (r, op, v) => matchTextCell(r.description ?? '', op, v),
+        permissionCount: (r, op, v) => matchNumberCell(r.permissionCount, op, v),
+      });
+      rows = filterRowsBySearch(rows, params.search, (r) => `${r.roleName} ${r.description ?? ''} ${r.permissionCount}`);
+      rows = sortRows(rows, params.sortBy, params.sortOrder, {
+        roleName: (r) => r.roleName,
+        description: (r) => r.description ?? '',
+        permissionCount: (r) => r.permissionCount,
+      });
+      return paginateSlice(rows, params.page, params.limit);
+    },
+    [savedTick],
+  );
 
   const resetForm = () => {
     setForm({ roleName: '', description: '' });
@@ -43,7 +86,7 @@ export default function RolesPage() {
     setError('');
   };
 
-  const startEdit = (r: typeof roles[0]) => {
+  const startEdit = (r: RoleRow) => {
     setForm({ roleName: r.roleName, description: r.description ?? '' });
     setEditingId(r.id);
     setShowForm(true);
@@ -53,35 +96,58 @@ export default function RolesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!form.roleName.trim()) { setError('نام نقش الزامی است.'); return; }
+    if (!form.roleName.trim()) {
+      setError('نام نقش الزامی است.');
+      return;
+    }
     setSaving(true);
     const res = editingId
       ? await api.roles.update(editingId, { roleName: form.roleName.trim(), description: form.description || undefined })
       : await api.roles.create({ roleName: form.roleName.trim(), description: form.description || undefined });
     setSaving(false);
-    if (!res.success) { setError(res.error?.message ?? 'خطا'); return; }
+    if (!res.success) {
+      setError(res.error?.message ?? 'خطا');
+      return;
+    }
     resetForm();
-    fetchData();
+    setSavedTick((k) => k + 1);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (r: RoleRow) => {
     const ok = await dialogs.confirm('آیا از حذف این نقش مطمئنید؟');
     if (!ok) return;
-    const res = await api.roles.delete(id);
+    const res = await api.roles.delete(r.id);
     if (!res.success) {
       await dialogs.alert(res.error?.message ?? 'خطا در حذف');
       return;
     }
-    fetchData();
+    setSavedTick((k) => k + 1);
   };
 
-  const openPermissions = (role: typeof roles[0]) => {
+  const handleBulkDelete = async (selected: RoleRow[]) => {
+    if (selected.length === 0) return;
+    const ok = await dialogs.confirm('آیا از حذف نقش‌های انتخاب شده مطمئنید؟', {
+      danger: true,
+      confirmText: 'حذف',
+    });
+    if (!ok) return;
+    const results = await Promise.all(selected.map((r) => api.roles.delete(r.id)));
+    const failed = results.find((r) => !r.success);
+    if (failed) {
+      await dialogs.alert(failed.error?.message ?? 'خطا در حذف گروهی');
+      return;
+    }
+    setSavedTick((k) => k + 1);
+  };
+
+  const openPermissions = (role: RoleRow) => {
     setAssignRoleId(role.id);
+    setAssignRoleName(role.roleName);
     setSelectedPermissionIds(role.permissions?.map((p) => p.id) ?? []);
   };
 
   const togglePermission = (pid: number) => {
-    setSelectedPermissionIds((prev) => prev.includes(pid) ? prev.filter((x) => x !== pid) : [...prev, pid]);
+    setSelectedPermissionIds((prev) => (prev.includes(pid) ? prev.filter((x) => x !== pid) : [...prev, pid]));
   };
 
   const savePermissions = async () => {
@@ -91,35 +157,97 @@ export default function RolesPage() {
     setSaving(false);
     if (res.success) {
       setAssignRoleId(null);
-      fetchData();
+      setAssignRoleName('');
+      setSavedTick((k) => k + 1);
     }
   };
 
-  // Group permissions by resource
   const permsByResource = allPermissions.reduce<Record<string, Permission[]>>((acc, p) => {
     const r = p.resource ?? 'other';
     (acc[r] = acc[r] || []).push(p);
     return acc;
   }, {});
 
+  const columns: DataTableColumn<RoleRow>[] = [
+    {
+      key: 'roleName',
+      title: 'نام نقش',
+      sticky: true,
+      sortable: true,
+      render: (r) => <span className="font-medium">{r.roleName}</span>,
+    },
+    {
+      key: 'description',
+      title: 'توضیحات',
+      sortable: true,
+      render: (r) => r.description ?? '-',
+    },
+    {
+      key: 'permissionCount',
+      title: 'تعداد مجوز',
+      sortable: true,
+      render: (r) => <Badge>{r.permissionCount}</Badge>,
+    },
+  ];
+
+  const actions: DataTableAction<RoleRow>[] = [
+    {
+      label: 'ویرایش',
+      variant: 'primary',
+      onClick: startEdit,
+      triggerOnRowDoubleClick: true,
+    },
+    {
+      label: 'مجوزها',
+      variant: 'secondary',
+      onClick: openPermissions,
+    },
+    {
+      label: 'حذف',
+      variant: 'danger',
+      onClick: handleDelete,
+    },
+  ];
+
+  const groupActions: DataTableGroupAction<RoleRow>[] = [
+    {
+      label: 'حذف انتخاب شده',
+      variant: 'danger',
+      onClick: handleBulkDelete,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">مدیریت نقش‌ها و مجوزها</h1>
-        <Button onClick={() => { resetForm(); setShowForm(true); }}>نقش جدید</Button>
+        <Button
+          onClick={() => {
+            resetForm();
+            setShowForm(true);
+          }}
+        >
+          نقش جدید
+        </Button>
       </div>
 
       {showForm && (
         <Card>
-          <CardHeader><CardTitle>{editingId ? 'ویرایش نقش' : 'نقش جدید'}</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>{editingId ? 'ویرایش نقش' : 'نقش جدید'}</CardTitle>
+          </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input label="نام نقش *" value={form.roleName} onChange={(e) => setForm((f) => ({ ...f, roleName: e.target.value }))} required />
               <Input label="توضیحات" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-2">
-                <Button type="submit" disabled={saving}>{saving ? 'در حال ذخیره...' : editingId ? 'بروزرسانی' : 'ثبت'}</Button>
-                <Button type="button" variant="outline" onClick={resetForm}>انصراف</Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? 'در حال ذخیره...' : editingId ? 'بروزرسانی' : 'ثبت'}
+                </Button>
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  انصراف
+                </Button>
               </div>
             </form>
           </CardContent>
@@ -128,7 +256,9 @@ export default function RolesPage() {
 
       {assignRoleId !== null && (
         <Card>
-          <CardHeader><CardTitle>تخصیص مجوزها به نقش: {roles.find((r) => r.id === assignRoleId)?.roleName}</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>تخصیص مجوزها به نقش: {assignRoleName}</CardTitle>
+          </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {Object.entries(permsByResource).map(([resource, perms]) => (
@@ -137,11 +267,7 @@ export default function RolesPage() {
                   <div className="flex flex-wrap gap-2">
                     {perms.map((p) => (
                       <label key={p.id} className="flex items-center gap-1.5 text-xs bg-slate-50 rounded px-2 py-1 cursor-pointer hover:bg-slate-100">
-                        <input
-                          type="checkbox"
-                          checked={selectedPermissionIds.includes(p.id)}
-                          onChange={() => togglePermission(p.id)}
-                        />
+                        <input type="checkbox" checked={selectedPermissionIds.includes(p.id)} onChange={() => togglePermission(p.id)} />
                         {p.actionCode}
                       </label>
                     ))}
@@ -149,8 +275,18 @@ export default function RolesPage() {
                 </div>
               ))}
               <div className="flex gap-2 pt-2">
-                <Button onClick={savePermissions} disabled={saving}>{saving ? 'در حال ذخیره...' : 'ذخیره مجوزها'}</Button>
-                <Button variant="outline" onClick={() => setAssignRoleId(null)}>انصراف</Button>
+                <Button onClick={savePermissions} disabled={saving}>
+                  {saving ? 'در حال ذخیره...' : 'ذخیره مجوزها'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setAssignRoleId(null);
+                    setAssignRoleName('');
+                  }}
+                >
+                  انصراف
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -158,34 +294,23 @@ export default function RolesPage() {
       )}
 
       <Card>
-        <CardHeader><CardTitle>لیست نقش‌ها</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>لیست نقش‌ها</CardTitle>
+        </CardHeader>
         <CardContent>
-          {loading ? <TableLoadingSkeleton columns={4} rows={8} /> : roles.length === 0 ? <p className="text-slate-500">نقشی یافت نشد.</p> : (
-            <table className="w-full text-sm text-right">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="py-2 px-3">نام نقش</th>
-                  <th className="py-2 px-3">توضیحات</th>
-                  <th className="py-2 px-3">تعداد مجوز</th>
-                  <th className="py-2 px-3">عملیات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {roles.map((r) => (
-                  <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-2 px-3 font-medium">{r.roleName}</td>
-                    <td className="py-2 px-3">{r.description ?? '-'}</td>
-                    <td className="py-2 px-3"><Badge>{r.permissionCount}</Badge></td>
-                    <td className="py-2 px-3">
-                      <Button variant="ghost" size="sm" onClick={() => startEdit(r)}>ویرایش</Button>
-                      <Button variant="ghost" size="sm" onClick={() => openPermissions(r)}>مجوزها</Button>
-                      <Button variant="danger" size="sm" onClick={() => handleDelete(r.id)}>حذف</Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <DataTable<RoleRow>
+            columns={columns}
+            actions={actions}
+            groupActions={groupActions}
+            selectableRows
+            fetchData={fetchRoles}
+            rowKey={(r) => r.id}
+            enableColumnPinning
+            filters={roleFilterDefinitions}
+            searchPlaceholder="فیلترها را اضافه کنید یا متن جستجو را وارد کنید، سپس جستجو..."
+            pageSize={10}
+            emptyMessage="نقشی یافت نشد."
+          />
         </CardContent>
       </Card>
     </div>

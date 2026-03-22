@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { Op } from 'sequelize';
 import sequelize from '../config/database.js';
 import Customer, { CustomerStatus } from '../models/Customer.js';
 import CustomerLevel from '../models/CustomerLevel.js';
@@ -12,6 +11,29 @@ import { NotFoundError, ValidationError } from '../utils/errors.js';
 import { createCustomerSchema, updateCustomerSchema } from '../validations/customer.validation.js';
 import { checkPromotionsForReferral, checkPromotionsAfterLevelChange } from '../services/promotionEvents.service.js';
 import { sendWelcomeMessage } from '../services/automatedMessages.service.js';
+import { dateRangeOnField, getBasicSearchString, orILike, parsePagination } from '../utils/search.utils.js';
+
+const CUSTOMER_LIST_SORT_FIELDS = [
+  'id',
+  'customerCode',
+  'firstName',
+  'lastName',
+  'companyName',
+  'brandName',
+  'status',
+  'customerType',
+  'createdAt',
+] as const;
+
+function parseCustomerListOrder(query: Record<string, unknown>): [string, 'ASC' | 'DESC'][] {
+  const sortBy = typeof query.sortBy === 'string' ? query.sortBy.trim() : '';
+  const orderRaw = String(query.sortOrder ?? 'desc').toLowerCase();
+  const dir: 'ASC' | 'DESC' = orderRaw === 'asc' ? 'ASC' : 'DESC';
+  if (sortBy && (CUSTOMER_LIST_SORT_FIELDS as readonly string[]).includes(sortBy)) {
+    return [[sortBy, dir]];
+  }
+  return [['createdAt', 'DESC']];
+}
 
 /**
  * Helper: all child model includes for eager loading
@@ -283,9 +305,27 @@ export const createCustomer = async (
  *         schema:
  *           type: integer
  *       - in: query
- *         name: search
+ *         name: q
+ *         description: Basic search across name, company, email, customer code (preferred over `search`)
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: search
+ *         description: Same as `q` (legacy alias)
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: createdFrom
+ *         description: Advanced filter — customers created on/after this date (ISO date)
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: createdTo
+ *         description: Advanced filter — customers created on/before this date (ISO date)
+ *         schema:
+ *           type: string
+ *           format: date
  *     responses:
  *       200:
  *         description: List of customers
@@ -296,10 +336,9 @@ export const getCustomers = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-    const offset = (page - 1) * limit;
-    const { status, search, customerType, relationshipType, isActive } = req.query;
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
+    const { status, customerType, relationshipType, isActive, createdFrom, createdTo } = req.query;
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
 
     const where: any = {};
 
@@ -319,16 +358,19 @@ export const getCustomers = async (
       where.isActive = isActive === 'true';
     }
 
-    if (search) {
-      where[Op.or] = [
-        { firstName: { [Op.iLike]: `%${search}%` } },
-        { lastName: { [Op.iLike]: `%${search}%` } },
-        { companyName: { [Op.iLike]: `%${search}%` } },
-        { brandName: { [Op.iLike]: `%${search}%` } },
-        { email: { [Op.iLike]: `%${search}%` } },
-        { customerCode: { [Op.iLike]: `%${search}%` } },
-      ];
+    const createdRange = dateRangeOnField('createdAt', createdFrom as string | undefined, createdTo as string | undefined);
+    if (createdRange) {
+      Object.assign(where, createdRange);
     }
+
+    if (q) {
+      Object.assign(
+        where,
+        orILike(['firstName', 'lastName', 'companyName', 'brandName', 'email', 'customerCode'], q)
+      );
+    }
+
+    const order = parseCustomerListOrder(req.query as Record<string, unknown>);
 
     const { count, rows } = await Customer.findAndCountAll({
       where,
@@ -338,7 +380,7 @@ export const getCustomers = async (
         { model: CustomerLevel, as: 'customerLevel', attributes: ['id', 'levelName'] },
         { model: CustomerPhone, as: 'phones', where: { isDefault: true }, required: false },
       ],
-      order: [['createdAt', 'DESC']],
+      order,
     });
 
     res.json({

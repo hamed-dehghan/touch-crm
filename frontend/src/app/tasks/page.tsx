@@ -3,13 +3,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
-import type { Task, User, Project, TaskStatus } from '@/types/api';
+import type { Task, User, Project, TaskStatus, Customer } from '@/types/api';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { formatGregorianToJalali } from '@/utils/date';
+import { PersianDatePicker } from '@/components/ui/DatePicker';
 import { TasksBoardLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
 /* ── helpers ── */
@@ -70,6 +71,13 @@ const emptyForm = {
 };
 
 const statusColumns: TaskStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+
+const statusMap: Record<TaskStatus, { label: string; variant: 'default' | 'success' | 'warning' | 'danger' | 'info' }> = {
+  PENDING: { label: 'در انتظار', variant: 'default' },
+  IN_PROGRESS: { label: 'در حال انجام', variant: 'warning' },
+  COMPLETED: { label: 'تکمیل شده', variant: 'success' },
+  CANCELLED: { label: 'لغو شده', variant: 'default' },
+};
 
 export default function TasksPage() {
   const router = useRouter();
@@ -333,8 +341,8 @@ export default function TasksPage() {
                 </select>
               </div>
 
-              {/* Row 3 - dates */}
-              <Input label="تاریخ سررسید" type="date" value={form.dueDate} onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))} />
+              {/* Row 3 - dates (picker shows Jalali; form state stays Gregorian YYYY-MM-DD for API) */}
+              <PersianDatePicker label="تاریخ سررسید" value={form.dueDate || undefined} onChange={(v) => setForm((f) => ({ ...f, dueDate: v }))} />
               <Input label="ساعت انجام" type="time" value={form.dueTime} onChange={(e) => setForm((f) => ({ ...f, dueTime: e.target.value }))} />
 
               {/* Row 4 - reminder */}
@@ -352,8 +360,8 @@ export default function TasksPage() {
               {form.isRecurring && (
                 <>
                   <Input label="بازه تکرار (روز)" type="number" min={1} value={form.recurringIntervalDays} onChange={(e) => setForm((f) => ({ ...f, recurringIntervalDays: e.target.value }))} />
-                  <Input label="تاریخ شروع دوره" type="date" value={form.recurringStartDate} onChange={(e) => setForm((f) => ({ ...f, recurringStartDate: e.target.value }))} />
-                  <Input label="تاریخ پایان دوره" type="date" value={form.recurringEndDate} onChange={(e) => setForm((f) => ({ ...f, recurringEndDate: e.target.value }))} />
+                  <PersianDatePicker label="تاریخ شروع دوره" value={form.recurringStartDate || undefined} onChange={(v) => setForm((f) => ({ ...f, recurringStartDate: v }))} />
+                  <PersianDatePicker label="تاریخ پایان دوره" value={form.recurringEndDate || undefined} onChange={(v) => setForm((f) => ({ ...f, recurringEndDate: v }))} />
                 </>
               )}
 

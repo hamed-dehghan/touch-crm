@@ -4,7 +4,8 @@
  */
 
 import type { ApiClient } from './client';
-import type { CustomerRfmResponse, Pagination, RfmScores } from '@/types/api';
+import type { Customer, CustomerRfmResponse, Pagination, Product, RfmScores } from '@/types/api';
+import { matchDateCell } from '@/lib/filterTokens';
 import {
   users,
   roles,
@@ -41,6 +42,35 @@ function matchSearch(text: string, search?: string): boolean {
   return text.toLowerCase().includes(search.toLowerCase().trim());
 }
 
+/** Mirrors backend product filter tokens for mock list. */
+function productMatchesFilterToken(p: Product, t: { key: string; operator: string; value: string }): boolean {
+  const v = t.value.trim();
+  if (t.key === 'productName') {
+    if (!v) return true;
+    const name = p.productName.toLowerCase();
+    const vv = v.toLowerCase();
+    if (t.operator === 'contains') return name.includes(vv);
+    if (t.operator === 'is') return name === vv;
+    if (t.operator === 'is_not') return name !== vv;
+    return true;
+  }
+  if (t.key === 'price' || t.key === 'taxRate') {
+    const n = Number(String(v).replace(/,/g, ''));
+    if (Number.isNaN(n)) return true;
+    const field = t.key === 'price' ? p.price : p.taxRate;
+    const op = t.operator;
+    if (op === '=') return field === n;
+    if (op === '>') return field > n;
+    if (op === '<') return field < n;
+    if (op === '>=') return field >= n;
+    if (op === '<=') return field <= n;
+  }
+  if (t.key === 'createdAt') {
+    return matchDateCell(p.createdAt, t.operator, t.value);
+  }
+  return true;
+}
+
 const authApi: ApiClient['auth'] = {
   async login(username, password) {
     const user = users.find((u) => u.username === username);
@@ -62,7 +92,19 @@ let mockCustomerCodeCounter = 5; // start after seeded data
 
 const customersApi: ApiClient['customers'] = {
   async list(params) {
-    const { page = 1, limit = 20, search, status } = params || {};
+    const {
+      page = 1,
+      limit = 20,
+      search,
+      status,
+      customerType,
+      relationshipType,
+      isActive,
+      createdFrom,
+      createdTo,
+      sortBy,
+      sortOrder,
+    } = params || {};
     let list = [...customers];
     if (search) {
       list = list.filter(
@@ -76,6 +118,48 @@ const customersApi: ApiClient['customers'] = {
       );
     }
     if (status) list = list.filter((c) => c.status === status);
+    if (customerType) list = list.filter((c) => c.customerType === customerType);
+    if (relationshipType) list = list.filter((c) => c.relationshipType === relationshipType);
+    if (isActive !== undefined && isActive !== '') {
+      const want = String(isActive) === 'true';
+      list = list.filter((c) => c.isActive === want);
+    }
+    if (createdFrom) {
+      const fromMs = new Date(createdFrom).getTime();
+      list = list.filter((c) => (c.createdAt ? new Date(c.createdAt).getTime() : 0) >= fromMs);
+    }
+    if (createdTo) {
+      const end = new Date(createdTo);
+      end.setHours(23, 59, 59, 999);
+      list = list.filter((c) =>
+        c.createdAt ? new Date(c.createdAt).getTime() <= end.getTime() : false,
+      );
+    }
+    const customerSortFields = [
+      'id',
+      'customerCode',
+      'firstName',
+      'lastName',
+      'companyName',
+      'brandName',
+      'status',
+      'customerType',
+      'createdAt',
+    ] as const;
+    if (sortBy && (customerSortFields as readonly string[]).includes(sortBy)) {
+      const dir = sortOrder === 'asc' ? 1 : -1;
+      const key = sortBy as keyof Customer;
+      list.sort((a, b) => {
+        const va = a[key];
+        const vb = b[key];
+        if (key === 'createdAt') {
+          const ta = va ? new Date(String(va)).getTime() : 0;
+          const tb = vb ? new Date(String(vb)).getTime() : 0;
+          return (ta - tb) * dir;
+        }
+        return (String(va ?? '').localeCompare(String(vb ?? ''), 'fa')) * dir;
+      });
+    }
     const { rows, pagination: p } = paginate(list, page, limit);
     return { success: true, data: { customers: rows, pagination: p } };
   },
@@ -222,6 +306,39 @@ const productsApi: ApiClient['products'] = {
       const s = params.search.toLowerCase();
       filtered = filtered.filter((p) => p.productName.toLowerCase().includes(s));
     }
+    if (params?.filters) {
+      try {
+        const tokens = JSON.parse(params.filters) as Array<{ key: string; operator: string; value: string }>;
+        if (Array.isArray(tokens)) {
+          for (const t of tokens) {
+            filtered = filtered.filter((p) => productMatchesFilterToken(p, t));
+          }
+        }
+      } catch {
+        /* ignore invalid JSON */
+      }
+    }
+    const sortFields = ['id', 'productName', 'price', 'taxRate', 'createdAt'] as const;
+    if (
+      params?.sortBy &&
+      (sortFields as readonly string[]).includes(params.sortBy)
+    ) {
+      const dir = params.sortOrder === 'asc' ? 1 : -1;
+      const key = params.sortBy as keyof Product;
+      filtered.sort((a, b) => {
+        const va = a[key];
+        const vb = b[key];
+        if (key === 'createdAt') {
+          const ta = va ? new Date(String(va)).getTime() : 0;
+          const tb = vb ? new Date(String(vb)).getTime() : 0;
+          return (ta - tb) * dir;
+        }
+        if (key === 'productName') {
+          return String(va ?? '').localeCompare(String(vb ?? ''), 'fa') * dir;
+        }
+        return (Number(va) - Number(vb)) * dir;
+      });
+    }
     const { rows, pagination } = paginate(filtered, params?.page, params?.limit);
     return { success: true, data: { products: rows, pagination } };
   },
@@ -367,10 +484,34 @@ const customerLevelsApi: ApiClient['customerLevels'] = {
 
 const transactionsApi: ApiClient['transactions'] = {
   async list(params) {
-    const { page = 1, limit = 20, customerId, orderId } = params || {};
+    const { page = 1, limit = 20, customerId, orderId, search, sortBy, sortOrder } = params || {};
     let list = [...transactions];
     if (customerId) list = list.filter((t) => t.customerId === customerId);
     if (orderId) list = list.filter((t) => t.orderId === orderId);
+    if (search?.trim()) {
+      const s = search.trim().toLowerCase();
+      list = list.filter((t) => {
+        const name = t.customer
+          ? [t.customer.firstName, t.customer.lastName].filter(Boolean).join(' ')
+          : String(t.customerId);
+        return name.toLowerCase().includes(s) || String(t.amount).includes(s);
+      });
+    }
+    const txSort = ['id', 'amount', 'transactionDate', 'paymentMethod'] as const;
+    if (sortBy && (txSort as readonly string[]).includes(sortBy)) {
+      const dir = sortOrder === 'asc' ? 1 : -1;
+      const key = sortBy as keyof (typeof transactions)[0];
+      list.sort((a, b) => {
+        const va = a[key];
+        const vb = b[key];
+        if (key === 'transactionDate') {
+          const ta = va ? new Date(String(va)).getTime() : 0;
+          const tb = vb ? new Date(String(vb)).getTime() : 0;
+          return (ta - tb) * dir;
+        }
+        return (Number(va) - Number(vb)) * dir;
+      });
+    }
     const { rows, pagination } = paginate(list, page, limit);
     return { success: true, data: { transactions: rows, pagination } };
   },

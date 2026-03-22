@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
 import Campaign, { CampaignStatus } from '../models/Campaign.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import { executeCampaign } from '../services/campaign.service.js';
 import User from '../models/User.js';
+import { getBasicSearchString, orILike, parsePagination } from '../utils/search.utils.js';
 
 /**
  * @swagger
@@ -85,17 +87,67 @@ export const createCampaign = async (
  *     tags: [Campaigns]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         description: Basic search on name and message template
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         description: Same as `q` (legacy)
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: status
+ *         description: Advanced filter
+ *         schema:
+ *           type: string
+ *           enum: [DRAFT, SCHEDULED, SENT, CANCELLED]
+ *       - in: query
+ *         name: createdByUserId
+ *         description: Advanced filter
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of campaigns
  */
 export const getCampaigns = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const campaigns = await Campaign.findAll({
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
+    const { status, createdByUserId } = req.query;
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
+
+    const where: Record<string, unknown> = {};
+    if (status) where.status = status;
+    if (createdByUserId !== undefined && createdByUserId !== '') {
+      where.createdByUserId = Number(createdByUserId);
+    }
+
+    const searchWhere =
+      q
+        ? {
+            [Op.and]: [where, orILike(['name', 'messageTemplate'], q)],
+          }
+        : where;
+
+    const { count, rows } = await Campaign.findAndCountAll({
+      where: searchWhere,
+      limit,
+      offset,
       include: [
         {
           model: User,
@@ -109,7 +161,13 @@ export const getCampaigns = async (
     res.json({
       success: true,
       data: {
-        campaigns,
+        campaigns: rows,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil(count / limit),
+        },
       },
     });
   } catch (error) {

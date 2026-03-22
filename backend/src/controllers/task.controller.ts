@@ -1,11 +1,13 @@
 // backend/src/controllers/task.controller.ts
 import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
 import Task, { TaskStatus } from '../models/Task.js';
 import TaskAttachment from '../models/TaskAttachment.js';
 import Project from '../models/Project.js';
 import User from '../models/User.js';
 import Customer from '../models/Customer.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
+import { dateRangeOnField, getBasicSearchString, orILike, parsePagination } from '../utils/search.utils.js';
 
 /** Shared include config for task queries */
 const taskIncludes = [
@@ -150,9 +152,46 @@ export const createTask = async (
  * /api/v1/tasks/my-tasks:
  *   get:
  *     summary: Get tasks assigned to current user
+ *     description: Same query parameters as GET /tasks for search and filters; results are limited to the current user.
  *     tags: [Tasks]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: projectId
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: customerId
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDING, IN_PROGRESS, COMPLETED, CANCELLED]
+ *       - in: query
+ *         name: dueDateFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: dueDateTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of user's tasks
@@ -169,16 +208,42 @@ export const getMyTasks = async (
       throw new ValidationError('User not authenticated');
     }
 
-    const tasks = await Task.findAll({
-      where: { assignedToUserId: userId },
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
+    const { projectId, customerId, status, dueDateFrom, dueDateTo } = req.query;
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
+
+    const where: Record<string, unknown> = { assignedToUserId: userId };
+    if (projectId) where.projectId = projectId;
+    if (customerId) where.customerId = customerId;
+    if (status) where.status = status;
+    const dueRange = dateRangeOnField('dueDate', dueDateFrom as string | undefined, dueDateTo as string | undefined);
+    if (dueRange) Object.assign(where, dueRange);
+
+    const searchWhere =
+      q
+        ? {
+            [Op.and]: [where, orILike(['title', 'description'], q)],
+          }
+        : where;
+
+    const { count, rows } = await Task.findAndCountAll({
+      where: searchWhere,
       include: taskIncludes,
+      limit,
+      offset,
       order: [['dueDate', 'ASC'], ['createdAt', 'DESC']],
     });
 
     res.json({
       success: true,
       data: {
-        tasks,
+        tasks: rows,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil(count / limit),
+        },
       },
     });
   } catch (error) {
@@ -196,18 +261,55 @@ export const getMyTasks = async (
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
+ *         name: q
+ *         description: Basic search on title and description
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         description: Same as `q` (legacy)
+ *         schema:
+ *           type: string
+ *       - in: query
  *         name: projectId
+ *         description: Advanced filter
  *         schema:
  *           type: integer
  *       - in: query
  *         name: customerId
+ *         description: Advanced filter
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: assignedToUserId
+ *         description: Advanced filter — assignee user id
  *         schema:
  *           type: integer
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
- *           enum: [PENDING, COMPLETED, CANCELLED]
+ *           enum: [PENDING, IN_PROGRESS, COMPLETED, CANCELLED]
+ *       - in: query
+ *         name: dueDateFrom
+ *         description: Advanced filter — due date range (start)
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: dueDateTo
+ *         description: Advanced filter — due date range (end)
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of tasks
@@ -218,23 +320,43 @@ export const getTasks = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { projectId, customerId, status } = req.query;
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
+    const { projectId, customerId, status, assignedToUserId, dueDateFrom, dueDateTo } = req.query;
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (projectId) where.projectId = projectId;
     if (customerId) where.customerId = customerId;
     if (status) where.status = status;
+    if (assignedToUserId) where.assignedToUserId = assignedToUserId;
+    const dueRange = dateRangeOnField('dueDate', dueDateFrom as string | undefined, dueDateTo as string | undefined);
+    if (dueRange) Object.assign(where, dueRange);
 
-    const tasks = await Task.findAll({
-      where,
+    const searchWhere =
+      q
+        ? {
+            [Op.and]: [where, orILike(['title', 'description'], q)],
+          }
+        : where;
+
+    const { count, rows } = await Task.findAndCountAll({
+      where: searchWhere,
       include: taskIncludes,
+      limit,
+      offset,
       order: [['dueDate', 'ASC'], ['createdAt', 'DESC']],
     });
 
     res.json({
       success: true,
       data: {
-        tasks,
+        tasks: rows,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil(count / limit),
+        },
       },
     });
   } catch (error) {
@@ -310,7 +432,7 @@ export const getTaskById = async (
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [PENDING, COMPLETED, CANCELLED]
+ *                 enum: [PENDING, IN_PROGRESS, COMPLETED, CANCELLED]
  *     responses:
  *       200:
  *         description: Task status updated successfully

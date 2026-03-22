@@ -107,6 +107,8 @@
   --color-primary: #b333aa;       /* Magenta – logo, active states */
   --color-accent: #ff9800;       /* Orange – primary buttons */
   --color-active-bg: #feebfe;    /* Light pink – active menu */
+  /* Solid row hover (no alpha) — ~same visual as tinting white with active-bg */
+  --color-table-row-hover: #fef9fe;
   --color-content-bg: #f8f8f8;  /* Main content background */
   --color-placeholder: #cccccc;
   --color-border: #e5e5e5;
@@ -118,6 +120,7 @@
   --color-primary: var(--color-primary);
   --color-accent: var(--color-accent);
   --color-active-bg: var(--color-active-bg);
+  --color-table-row-hover: var(--color-table-row-hover);
   --color-content-bg: var(--color-content-bg);
   --color-placeholder: var(--color-placeholder);
   --color-border: var(--color-border);
@@ -128,4 +131,23 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: "IRANSans", Tahoma, sans-serif;
+}
+
+/* SVAR DataGrid RTL overrides */
+.svar-rtl-grid {
+  direction: rtl;
+}
+.svar-rtl-grid .wx-grid {
+  direction: rtl;
+}
+.svar-rtl-grid .wx-grid .cell,
+.svar-rtl-grid .wx-grid .header .cell {
+  text-align: right;
+}
+.svar-rtl-grid .wx-grid .header .filter input {
+  direction: rtl;
+  text-align: right;
+}
+.svar-rtl-grid .wx-pager {
+  direction: ltr;
 }

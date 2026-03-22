@@ -1,50 +1,104 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Customer } from '@/types/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useAppDialogs } from '@/components/ui/AppDialogs';
-import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableAction,
+  type DataTableGroupAction,
+  type DataTableFilter,
+  type FilterToken,
+} from '@/components/ui/DataTable';
 import { CustomerFormModal } from '@/components/customers/CustomerFormModal';
+import { buildCustomerListParamsFromTokens } from '@/lib/filterTokens';
+
+const customerFilterDefinitions: DataTableFilter[] = [
+  {
+    key: 'status',
+    label: 'وضعیت',
+    type: 'select',
+    options: [
+      { value: 'LEAD', label: 'سرنخ' },
+      { value: 'OPPORTUNITY', label: 'فرصت' },
+      { value: 'CUSTOMER', label: 'مشتری' },
+      { value: 'LOST', label: 'از دست رفته' },
+    ],
+  },
+  {
+    key: 'customerType',
+    label: 'نوع',
+    type: 'select',
+    options: [
+      { value: 'NATURAL', label: 'حقیقی' },
+      { value: 'LEGAL', label: 'حقوقی' },
+    ],
+  },
+  {
+    key: 'relationshipType',
+    label: 'نوع رابطه',
+    type: 'select',
+    options: [
+      { value: 'CUSTOMER', label: 'مشتری' },
+      { value: 'SUPPLIER', label: 'تأمین‌کننده' },
+      { value: 'AGENT', label: 'نماینده' },
+      { value: 'COMPETITOR', label: 'رقیب' },
+      { value: 'INTERNAL_STAFF', label: 'کارمند داخلی' },
+    ],
+  },
+  {
+    key: 'isActive',
+    label: 'فعال',
+    type: 'select',
+    options: [
+      { value: 'true', label: 'بله' },
+      { value: 'false', label: 'خیر' },
+    ],
+  },
+  { key: 'createdAt', label: 'تاریخ ایجاد', type: 'date' },
+];
 
 export default function CustomersPage() {
+  const router = useRouter();
   const dialogs = useAppDialogs();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
-  const [customerType, setCustomerType] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editCustomerId, setEditCustomerId] = useState<number | undefined>();
+  const [savedTick, setSavedTick] = useState(0);
 
-  const fetchCustomers = async (page = 1) => {
-    setLoading(true);
-    const res = await api.customers.list({
-      page,
-      limit: 20,
-      search: search || undefined,
-      status: status || undefined,
-    });
-    setLoading(false);
-    if (res.success && res.data) {
-      setCustomers(res.data.customers);
-      setPagination(res.data.pagination);
-    }
-  };
-
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
-
-  const handleSearch = () => fetchCustomers(1);
+  const fetchCustomers = useCallback(
+    async (params: {
+      page: number;
+      limit: number;
+      search: string;
+      filters?: FilterToken[];
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    }) => {
+      const fromTokens = buildCustomerListParamsFromTokens(params.filters);
+      const res = await api.customers.list({
+        page: params.page,
+        limit: params.limit,
+        search: params.search || undefined,
+        ...fromTokens,
+        sortBy: params.sortBy,
+        sortOrder: params.sortOrder,
+      });
+      if (res.success && res.data) {
+        return { rows: res.data.customers, pagination: res.data.pagination };
+      }
+      return {
+        rows: [],
+        pagination: { page: 1, limit: params.limit, total: 0, totalPages: 0 },
+      };
+    },
+    [savedTick],
+  );
 
   const openCreateModal = () => {
     setEditCustomerId(undefined);
@@ -61,11 +115,16 @@ export default function CustomersPage() {
 
   const statusLabel = (s: string) => {
     switch (s) {
-      case 'LEAD': return 'سرنخ';
-      case 'OPPORTUNITY': return 'فرصت';
-      case 'CUSTOMER': return 'مشتری';
-      case 'LOST': return 'از دست رفته';
-      default: return s;
+      case 'LEAD':
+        return 'سرنخ';
+      case 'OPPORTUNITY':
+        return 'فرصت';
+      case 'CUSTOMER':
+        return 'مشتری';
+      case 'LOST':
+        return 'از دست رفته';
+      default:
+        return s;
     }
   };
 
@@ -84,10 +143,104 @@ export default function CustomersPage() {
     return defaultPhone.phoneNumber;
   };
 
+  const handleDelete = async (c: Customer) => {
+    const ok = await dialogs.confirm('آیا از حذف این مشتری مطمئنید؟');
+    if (!ok) return;
+    const res = await api.customers.delete(c.id);
+    if (res.success) setSavedTick((k) => k + 1);
+  };
+
+  const handleBulkDelete = async (selected: Customer[]) => {
+    if (selected.length === 0) return;
+    const ok = await dialogs.confirm('آیا از حذف مشتریان انتخاب شده مطمئنید؟', {
+      danger: true,
+      confirmText: 'حذف',
+    });
+    if (!ok) return;
+    const results = await Promise.all(selected.map((c) => api.customers.delete(c.id)));
+    const failed = results.find((r) => !r.success);
+    if (failed) {
+      await dialogs.alert(failed.error?.message ?? 'خطا در حذف گروهی');
+      return;
+    }
+    setSavedTick((k) => k + 1);
+  };
+
+  const columns: DataTableColumn<Customer>[] = [
+    {
+      key: 'customerCode',
+      title: 'کد',
+      sortable: true,
+      sortField: 'customerCode',
+      render: (row) => <span className="font-mono text-xs">{row.customerCode}</span>,
+    },
+    {
+      key: 'customerType',
+      title: 'نوع',
+      sortable: true,
+      render: (row) => (
+        <Badge variant={row.customerType === 'LEGAL' ? 'info' : 'default'}>{typeLabel(row.customerType)}</Badge>
+      ),
+    },
+    {
+      key: 'displayName',
+      title: 'نام',
+      sticky: true,
+      sortable: true,
+      sortField: 'lastName',
+      render: (row) => getDisplayName(row),
+    },
+    {
+      key: 'phone',
+      title: 'تلفن',
+      render: (row) => getDefaultPhone(row),
+    },
+    {
+      key: 'status',
+      title: 'وضعیت',
+      sortable: true,
+      render: (row) => <Badge variant={statusVariant(row.status)}>{statusLabel(row.status)}</Badge>,
+    },
+    {
+      key: 'level',
+      title: 'سطح',
+      render: (row) => row.customerLevel?.levelName ?? '-',
+    },
+  ];
+
+  const actions: DataTableAction<Customer>[] = [
+    {
+      label: 'مشاهده',
+      variant: 'ghost',
+      onClick: (row) => {
+        router.push(`/customers/${row.id}`);
+      },
+    },
+    {
+      label: 'ویرایش',
+      variant: 'primary',
+      onClick: (row) => openEditModal(row.id),
+      triggerOnRowDoubleClick: true,
+    },
+    {
+      label: 'حذف',
+      variant: 'danger',
+      onClick: (row) => void handleDelete(row),
+    },
+  ];
+
+  const groupActions: DataTableGroupAction<Customer>[] = [
+    {
+      label: 'حذف انتخاب شده',
+      variant: 'danger',
+      onClick: handleBulkDelete,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">مشتریان</h1>
+        <h1 className="text-2xl font-bold text-foreground">مشتریان</h1>
         <Button onClick={openCreateModal}>ثبت مشتری جدید</Button>
       </div>
       <Card>
@@ -95,81 +248,27 @@ export default function CustomersPage() {
           <CardTitle>لیست مشتریان</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Input placeholder="جستجو (نام، شرکت، کد)" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-              <option value="">همه وضعیت‌ها</option>
-              <option value="LEAD">سرنخ</option>
-              <option value="OPPORTUNITY">فرصت</option>
-              <option value="CUSTOMER">مشتری</option>
-              <option value="LOST">از دست رفته</option>
-            </select>
-            <select value={customerType} onChange={(e) => setCustomerType(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-              <option value="">همه انواع</option>
-              <option value="NATURAL">حقیقی</option>
-              <option value="LEGAL">حقوقی</option>
-            </select>
-            <Button variant="secondary" onClick={handleSearch}>جستجو</Button>
-          </div>
-          {loading ? <TableLoadingSkeleton columns={5} rows={8} /> : customers.length === 0 ? <p className="text-slate-500">مشتریی یافت نشد.</p> : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-right">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="py-2 px-3">کد</th>
-                    <th className="py-2 px-3">نوع</th>
-                    <th className="py-2 px-3">نام</th>
-                    <th className="py-2 px-3">تلفن</th>
-                    <th className="py-2 px-3">وضعیت</th>
-                    <th className="py-2 px-3">سطح</th>
-                    <th className="py-2 px-3">عملیات</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {customers.map((c) => (
-                    <tr key={c.id} className={`border-b border-slate-100 hover:bg-slate-50 ${!c.isActive ? 'opacity-50' : ''}`}>
-                      <td className="py-2 px-3 font-mono text-xs">{c.customerCode}</td>
-                      <td className="py-2 px-3">
-                        <Badge variant={c.customerType === 'LEGAL' ? 'info' : 'default'}>
-                          {typeLabel(c.customerType)}
-                        </Badge>
-                      </td>
-                      <td className="py-2 px-3">{getDisplayName(c)}</td>
-                      <td className="py-2 px-3">{getDefaultPhone(c)}</td>
-                      <td className="py-2 px-3"><Badge variant={statusVariant(c.status)}>{statusLabel(c.status)}</Badge></td>
-                      <td className="py-2 px-3">{c.customerLevel?.levelName ?? '-'}</td>
-                      <td className="py-2 px-3">
-                        <Link href={`/customers/${c.id}`}><Button variant="ghost" size="sm">مشاهده</Button></Link>
-                        <Button variant="ghost" size="sm" onClick={() => openEditModal(c.id)}>ویرایش</Button>
-                        <Button variant="danger" size="sm" onClick={async () => {
-                          const ok = await dialogs.confirm('آیا از حذف این مشتری مطمئنید؟');
-                          if (!ok) return;
-                          const res = await api.customers.delete(c.id);
-                          if (res.success) fetchCustomers(pagination.page);
-                        }}>حذف</Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {pagination.totalPages > 1 && (
-            <div className="mt-4 flex gap-2">
-              <Button variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => fetchCustomers(pagination.page - 1)}>قبلی</Button>
-              <span className="py-2 text-sm text-slate-600">صفحه {pagination.page} از {pagination.totalPages}</span>
-              <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => fetchCustomers(pagination.page + 1)}>بعدی</Button>
-            </div>
-          )}
+          <DataTable<Customer>
+            columns={columns}
+            actions={actions}
+            groupActions={groupActions}
+            selectableRows
+            isRowSelectable={(row) => row.isActive}
+            fetchData={fetchCustomers}
+            rowKey={(row) => row.id}
+            filters={customerFilterDefinitions}
+            searchPlaceholder="متن آزاد یا فیلترها را اضافه کنید، سپس جستجو را بزنید..."
+            pageSize={20}
+            emptyMessage="مشتریی یافت نشد."
+          />
         </CardContent>
       </Card>
 
-      {/* Customer Form Modal */}
       <CustomerFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         customerId={editCustomerId}
-        onSaved={() => fetchCustomers(pagination.page)}
+        onSaved={() => setSavedTick((k) => k + 1)}
       />
     </div>
   );

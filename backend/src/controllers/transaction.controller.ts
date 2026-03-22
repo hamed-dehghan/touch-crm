@@ -1,9 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
 import Transaction from '../models/Transaction.js';
 import Customer from '../models/Customer.js';
 import Order from '../models/Order.js';
 import { NotFoundError } from '../utils/errors.js';
 import { createTransactionSchema } from '../validations/transaction.validation.js';
+import {
+  dateRangeOnField,
+  getBasicSearchString,
+  isDigitsOnly,
+  parsePagination,
+  wrapIlike,
+} from '../utils/search.utils.js';
 
 /**
  * @swagger
@@ -94,18 +102,56 @@ export const createTransaction = async (
  * /api/v1/transactions:
  *   get:
  *     summary: Get list of transactions
+ *     description: |
+ *       Basic search (`q`) matches transaction id (numeric), payment method text, and linked customer name/code.
+ *       Combine with explicit filters for advanced queries.
  *     tags: [Transactions]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         description: Same as `q` (legacy)
+ *         schema:
+ *           type: string
+ *       - in: query
  *         name: customerId
+ *         description: Advanced filter
  *         schema:
  *           type: integer
  *       - in: query
  *         name: orderId
+ *         description: Advanced filter
  *         schema:
  *           type: integer
+ *       - in: query
+ *         name: paymentMethod
+ *         description: Advanced filter — CASH or CHECK
+ *         schema:
+ *           type: string
+ *           enum: [CASH, CHECK]
+ *       - in: query
+ *         name: transactionDateFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: transactionDateTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: minAmount
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxAmount
+ *         schema:
+ *           type: number
  *       - in: query
  *         name: page
  *         schema:
@@ -124,23 +170,74 @@ export const getTransactions = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-    const offset = (page - 1) * limit;
-    const { customerId, orderId } = req.query;
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
+    const {
+      customerId,
+      orderId,
+      paymentMethod,
+      transactionDateFrom,
+      transactionDateTo,
+      minAmount,
+      maxAmount,
+    } = req.query;
 
-    const where: any = {};
-    if (customerId) {
-      where.customerId = customerId;
+    const baseFilters: Record<string, unknown> = {};
+    if (customerId !== undefined && customerId !== '') {
+      baseFilters.customerId = customerId;
     }
-    if (orderId) {
-      where.orderId = orderId;
+    if (orderId !== undefined && orderId !== '') {
+      baseFilters.orderId = orderId;
+    }
+    if (paymentMethod !== undefined && paymentMethod !== '') {
+      baseFilters.paymentMethod = paymentMethod;
+    }
+
+    const dr = dateRangeOnField(
+      'transactionDate',
+      transactionDateFrom as string | undefined,
+      transactionDateTo as string | undefined
+    );
+    if (dr) Object.assign(baseFilters, dr);
+
+    const amt: Record<string | symbol, number> = {};
+    if (minAmount !== undefined && minAmount !== '') {
+      const n = Number(minAmount);
+      if (!Number.isNaN(n)) amt[Op.gte] = n;
+    }
+    if (maxAmount !== undefined && maxAmount !== '') {
+      const n = Number(maxAmount);
+      if (!Number.isNaN(n)) amt[Op.lte] = n;
+    }
+    if (Object.keys(amt).length > 0) {
+      baseFilters.amount = amt;
+    }
+
+    let where: Record<string, unknown> = baseFilters;
+
+    if (q) {
+      const pattern = wrapIlike(q);
+      const searchOr: Record<string, unknown>[] = [
+        { '$customer.firstName$': { [Op.iLike]: pattern } },
+        { '$customer.lastName$': { [Op.iLike]: pattern } },
+        { '$customer.customerCode$': { [Op.iLike]: pattern } },
+        { paymentMethod: { [Op.iLike]: pattern } },
+      ];
+      if (isDigitsOnly(q)) {
+        const id = parseInt(q, 10);
+        if (id > 0) searchOr.push({ id });
+      }
+      where = {
+        [Op.and]: [baseFilters, { [Op.or]: searchOr }],
+      };
     }
 
     const { count, rows } = await Transaction.findAndCountAll({
       where,
       limit,
       offset,
+      subQuery: false,
+      distinct: true,
       include: [
         {
           model: Customer,

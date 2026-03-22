@@ -1,9 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
 import Order from '../models/Order.js';
 import OrderItem from '../models/OrderItem.js';
 import Customer from '../models/Customer.js';
 import Product from '../models/Product.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
+import {
+  dateRangeOnField,
+  getBasicSearchString,
+  isDigitsOnly,
+  parsePagination,
+  wrapIlike,
+} from '../utils/search.utils.js';
 
 /**
  * @swagger
@@ -181,10 +189,54 @@ export const createOrder = async (
  * /api/v1/orders:
  *   get:
  *     summary: Get list of all orders
- *     description: Retrieves all orders with associated customer and order items, sorted by order date descending.
+ *     description: |
+ *       Paginated list with optional basic search (`q`) on order id (numeric) and linked customer name/code,
+ *       and advanced filters (customer, date range, amount range).
  *     tags: [Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         description: Basic search — order id (if numeric) or customer first/last name, company, customer code
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         description: Same as `q` (legacy)
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: customerId
+ *         description: Advanced filter — restrict to a customer
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: orderDateFrom
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: orderDateTo
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: minFinalAmount
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxFinalAmount
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of orders
@@ -224,14 +276,61 @@ export const createOrder = async (
  *                             type: array
  *                             items:
  *                               type: object
+ *                     pagination:
+ *                       type: object
  */
-export const getOrders = async (
-  _req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+export const getOrders = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const orders = await Order.findAll({
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
+    const { customerId, orderDateFrom, orderDateTo, minFinalAmount, maxFinalAmount } = req.query;
+
+    const baseFilters: Record<string, unknown> = {};
+    if (customerId !== undefined && customerId !== '') {
+      baseFilters.customerId = Number(customerId);
+    }
+
+    const dr = dateRangeOnField('orderDate', orderDateFrom as string | undefined, orderDateTo as string | undefined);
+    if (dr) Object.assign(baseFilters, dr);
+
+    const amt: Record<string | symbol, number> = {};
+    if (minFinalAmount !== undefined && minFinalAmount !== '') {
+      const n = Number(minFinalAmount);
+      if (!Number.isNaN(n)) amt[Op.gte] = n;
+    }
+    if (maxFinalAmount !== undefined && maxFinalAmount !== '') {
+      const n = Number(maxFinalAmount);
+      if (!Number.isNaN(n)) amt[Op.lte] = n;
+    }
+    if (Object.keys(amt).length > 0) {
+      baseFilters.finalAmount = amt;
+    }
+
+    let where: Record<string, unknown> = baseFilters;
+
+    if (q) {
+      const pattern = wrapIlike(q);
+      const searchOr: Record<string, unknown>[] = [
+        { '$customer.firstName$': { [Op.iLike]: pattern } },
+        { '$customer.lastName$': { [Op.iLike]: pattern } },
+        { '$customer.companyName$': { [Op.iLike]: pattern } },
+        { '$customer.customerCode$': { [Op.iLike]: pattern } },
+      ];
+      if (isDigitsOnly(q)) {
+        const id = parseInt(q, 10);
+        if (id > 0) searchOr.push({ id });
+      }
+      where = {
+        [Op.and]: [baseFilters, { [Op.or]: searchOr }],
+      };
+    }
+
+    const { count, rows } = await Order.findAndCountAll({
+      where,
+      limit,
+      offset,
+      subQuery: false,
+      distinct: true,
       include: [
         { model: Customer, as: 'customer' },
         { model: OrderItem, as: 'orderItems' },
@@ -241,7 +340,15 @@ export const getOrders = async (
 
     res.json({
       success: true,
-      data: { orders },
+      data: {
+        orders: rows,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil(count / limit),
+        },
+      },
     });
   } catch (error) {
     next(error);

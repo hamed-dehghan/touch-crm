@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
 import Project, { ProjectStatus } from '../models/Project.js';
 import Customer from '../models/Customer.js';
 import { NotFoundError } from '../utils/errors.js';
+import { getBasicSearchString, orILike, parsePagination } from '../utils/search.utils.js';
 
 /**
  * @swagger
@@ -84,7 +86,32 @@ export const createProject = async (
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
+ *         name: q
+ *         description: Basic search on project name and description
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         description: Same as `q` (legacy)
+ *         schema:
+ *           type: string
+ *       - in: query
  *         name: customerId
+ *         description: Advanced filter
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: status
+ *         description: Advanced filter
+ *         schema:
+ *           type: string
+ *           enum: [OPEN, IN_PROGRESS, COMPLETED, CANCELLED]
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
  *         schema:
  *           type: integer
  *     responses:
@@ -97,15 +124,29 @@ export const getProjects = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { customerId } = req.query;
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
+    const { customerId, status } = req.query;
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (customerId) {
       where.customerId = customerId;
     }
+    if (status) {
+      where.status = status;
+    }
 
-    const projects = await Project.findAll({
-      where,
+    const searchWhere =
+      q
+        ? {
+            [Op.and]: [where, orILike(['projectName', 'description'], q)],
+          }
+        : where;
+
+    const { count, rows } = await Project.findAndCountAll({
+      where: searchWhere,
+      limit,
+      offset,
       include: [{ model: Customer, as: 'customer', attributes: ['id', 'firstName', 'lastName'] }],
       order: [['createdAt', 'DESC']],
     });
@@ -113,7 +154,13 @@ export const getProjects = async (
     res.json({
       success: true,
       data: {
-        projects,
+        projects: rows,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil(count / limit),
+        },
       },
     });
   } catch (error) {

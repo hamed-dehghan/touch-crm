@@ -18,7 +18,7 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "bun test src/utils/productFilter.utils.test.ts"
   },
   "keywords": [
     "crm",

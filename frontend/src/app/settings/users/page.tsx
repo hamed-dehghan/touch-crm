@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { User, Role } from '@/types/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -8,30 +8,97 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useAppDialogs } from '@/components/ui/AppDialogs';
-import { TableLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableAction,
+  type DataTableGroupAction,
+  type DataTableFilter,
+  type FilterToken,
+} from '@/components/ui/DataTable';
+import { filterRowsBySearch, paginateSlice, sortRows } from '@/lib/clientListQuery';
+import { filterRowsByTokens, matchSelectCell, matchTextCell } from '@/lib/filterTokens';
+
+const userFilterDefinitions: DataTableFilter[] = [
+  { key: 'username', label: 'نام کاربری', type: 'text' },
+  { key: 'fullName', label: 'نام', type: 'text' },
+  { key: 'email', label: 'ایمیل', type: 'text' },
+  {
+    key: 'roleId',
+    label: 'نقش',
+    type: 'select',
+    options: () =>
+      api.roles.list().then((rRes) =>
+        rRes.success && rRes.data
+          ? rRes.data.roles.map((r) => ({ value: String(r.id), label: r.roleName }))
+          : [],
+      ),
+  },
+  {
+    key: 'isActive',
+    label: 'وضعیت',
+    type: 'select',
+    options: [
+      { value: 'true', label: 'فعال' },
+      { value: 'false', label: 'غیرفعال' },
+    ],
+  },
+];
 
 export default function UsersPage() {
   const dialogs = useAppDialogs();
-  const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ username: '', password: '', fullName: '', email: '', roleId: '', isActive: true });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [savedTick, setSavedTick] = useState(0);
 
-  const fetchData = () => {
-    setLoading(true);
-    Promise.all([api.users.list(), api.roles.list()]).then(([uRes, rRes]) => {
-      if (uRes.success && uRes.data) setUsers(uRes.data.users);
+  useEffect(() => {
+    api.roles.list().then((rRes) => {
       if (rRes.success && rRes.data) setRoles(rRes.data.roles);
-      setLoading(false);
     });
-  };
+  }, []);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
-  useEffect(() => { fetchData(); }, []);
+  const fetchUsers = useCallback(
+    async (params: {
+      page: number;
+      limit: number;
+      search: string;
+      filters?: FilterToken[];
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    }) => {
+      const res = await api.users.list();
+      if (!res.success || !res.data) {
+        return {
+          rows: [],
+          pagination: { page: 1, limit: params.limit, total: 0, totalPages: 0 },
+        };
+      }
+      let rows = [...res.data.users];
+      rows = filterRowsByTokens(rows, params.filters, {
+        username: (u, op, v) => matchTextCell(u.username, op, v),
+        fullName: (u, op, v) => matchTextCell(u.fullName ?? '', op, v),
+        email: (u, op, v) => matchTextCell(u.email ?? '', op, v),
+        roleId: (u, op, v) => matchSelectCell(String(u.roleId), op, v),
+        isActive: (u, op, v) => matchSelectCell(u.isActive ? 'true' : 'false', op, v),
+      });
+      rows = filterRowsBySearch(rows, params.search, (u) =>
+        `${u.username} ${u.fullName ?? ''} ${u.email ?? ''} ${u.role?.roleName ?? ''}`,
+      );
+      rows = sortRows(rows, params.sortBy, params.sortOrder, {
+        username: (u) => u.username,
+        fullName: (u) => u.fullName ?? '',
+        email: (u) => u.email ?? '',
+        role: (u) => u.role?.roleName ?? '',
+        isActive: (u) => (u.isActive ? 1 : 0),
+      });
+      return paginateSlice(rows, params.page, params.limit);
+    },
+    [savedTick],
+  );
 
   const resetForm = () => {
     setForm({ username: '', password: '', fullName: '', email: '', roleId: '', isActive: true });
@@ -50,8 +117,14 @@ export default function UsersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!form.username.trim() || !form.roleId) { setError('نام کاربری و نقش الزامی است.'); return; }
-    if (!editingId && !form.password) { setError('رمز عبور برای کاربر جدید الزامی است.'); return; }
+    if (!form.username.trim() || !form.roleId) {
+      setError('نام کاربری و نقش الزامی است.');
+      return;
+    }
+    if (!editingId && !form.password) {
+      setError('رمز عبور برای کاربر جدید الزامی است.');
+      return;
+    }
     setSaving(true);
     let res;
     if (editingId) {
@@ -72,32 +145,116 @@ export default function UsersPage() {
       });
     }
     setSaving(false);
-    if (!res.success) { setError(res.error?.message ?? 'خطا'); return; }
+    if (!res.success) {
+      setError(res.error?.message ?? 'خطا');
+      return;
+    }
     resetForm();
-    fetchData();
+    setSavedTick((k) => k + 1);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (u: User) => {
     const ok = await dialogs.confirm('آیا از حذف این کاربر مطمئنید؟');
     if (!ok) return;
-    const res = await api.users.delete(id);
+    const res = await api.users.delete(u.id);
     if (!res.success) {
       await dialogs.alert(res.error?.message ?? 'خطا در حذف');
       return;
     }
-    fetchData();
+    setSavedTick((k) => k + 1);
   };
+
+  const handleBulkDelete = async (selected: User[]) => {
+    if (selected.length === 0) return;
+    const ok = await dialogs.confirm('آیا از حذف کاربران انتخاب شده مطمئنید؟', {
+      danger: true,
+      confirmText: 'حذف',
+    });
+    if (!ok) return;
+    const results = await Promise.all(selected.map((u) => api.users.delete(u.id)));
+    const failed = results.find((r) => !r.success);
+    if (failed) {
+      await dialogs.alert(failed.error?.message ?? 'خطا در حذف گروهی');
+      return;
+    }
+    setSavedTick((k) => k + 1);
+  };
+
+  const columns: DataTableColumn<User>[] = [
+    {
+      key: 'username',
+      title: 'نام کاربری',
+      sticky: true,
+      sortable: true,
+    },
+    {
+      key: 'fullName',
+      title: 'نام',
+      sortable: true,
+      render: (u) => u.fullName ?? '-',
+    },
+    {
+      key: 'email',
+      title: 'ایمیل',
+      sortable: true,
+      render: (u) => u.email ?? '-',
+    },
+    {
+      key: 'role',
+      title: 'نقش',
+      sortable: true,
+      sortField: 'role',
+      render: (u) => u.role?.roleName ?? '-',
+    },
+    {
+      key: 'isActive',
+      title: 'وضعیت',
+      sortable: true,
+      render: (u) => <Badge variant={u.isActive ? 'success' : 'default'}>{u.isActive ? 'فعال' : 'غیرفعال'}</Badge>,
+    },
+  ];
+
+  const actions: DataTableAction<User>[] = [
+    {
+      label: 'ویرایش',
+      variant: 'primary',
+      onClick: startEdit,
+      triggerOnRowDoubleClick: true,
+    },
+    {
+      label: 'حذف',
+      variant: 'danger',
+      onClick: handleDelete,
+    },
+  ];
+
+  const groupActions: DataTableGroupAction<User>[] = [
+    {
+      label: 'حذف انتخاب شده',
+      variant: 'danger',
+      onClick: handleBulkDelete,
+    },
+  ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">مدیریت کاربران</h1>
-        <Button onClick={() => { resetForm(); setShowForm(true); }}>کاربر جدید</Button>
+        <Button
+          onClick={() => {
+            resetForm();
+            setShowForm(true);
+          }}
+        >
+          کاربر جدید
+        </Button>
       </div>
 
       {showForm && (
         <Card>
-          <CardHeader><CardTitle>{editingId ? 'ویرایش کاربر' : 'کاربر جدید'}</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>{editingId ? 'ویرایش کاربر' : 'کاربر جدید'}</CardTitle>
+          </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input label="نام کاربری *" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required />
@@ -108,7 +265,11 @@ export default function UsersPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-1">نقش *</label>
                 <select value={form.roleId} onChange={(e) => setForm((f) => ({ ...f, roleId: e.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" required>
                   <option value="">-- انتخاب نقش --</option>
-                  {roles.map((r) => <option key={r.id} value={r.id}>{r.roleName}</option>)}
+                  {roles.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.roleName}
+                    </option>
+                  ))}
                 </select>
               </div>
               {editingId && (
@@ -119,8 +280,12 @@ export default function UsersPage() {
               )}
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-2">
-                <Button type="submit" disabled={saving}>{saving ? 'در حال ذخیره...' : editingId ? 'بروزرسانی' : 'ثبت'}</Button>
-                <Button type="button" variant="outline" onClick={resetForm}>انصراف</Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? 'در حال ذخیره...' : editingId ? 'بروزرسانی' : 'ثبت'}
+                </Button>
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  انصراف
+                </Button>
               </div>
             </form>
           </CardContent>
@@ -128,37 +293,23 @@ export default function UsersPage() {
       )}
 
       <Card>
-        <CardHeader><CardTitle>لیست کاربران</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>لیست کاربران</CardTitle>
+        </CardHeader>
         <CardContent>
-          {loading ? <TableLoadingSkeleton columns={6} rows={8} /> : users.length === 0 ? <p className="text-slate-500">کاربری یافت نشد.</p> : (
-            <table className="w-full text-sm text-right">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="py-2 px-3">نام کاربری</th>
-                  <th className="py-2 px-3">نام</th>
-                  <th className="py-2 px-3">ایمیل</th>
-                  <th className="py-2 px-3">نقش</th>
-                  <th className="py-2 px-3">وضعیت</th>
-                  <th className="py-2 px-3">عملیات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-2 px-3">{u.username}</td>
-                    <td className="py-2 px-3">{u.fullName ?? '-'}</td>
-                    <td className="py-2 px-3">{u.email ?? '-'}</td>
-                    <td className="py-2 px-3">{u.role?.roleName ?? '-'}</td>
-                    <td className="py-2 px-3"><Badge variant={u.isActive ? 'success' : 'default'}>{u.isActive ? 'فعال' : 'غیرفعال'}</Badge></td>
-                    <td className="py-2 px-3">
-                      <Button variant="ghost" size="sm" onClick={() => startEdit(u)}>ویرایش</Button>
-                      <Button variant="danger" size="sm" onClick={() => handleDelete(u.id)}>حذف</Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <DataTable<User>
+            columns={columns}
+            actions={actions}
+            groupActions={groupActions}
+            selectableRows
+            fetchData={fetchUsers}
+            rowKey={(r) => r.id}
+            enableColumnPinning
+            filters={userFilterDefinitions}
+            searchPlaceholder="فیلترها را اضافه کنید یا متن جستجو را وارد کنید، سپس جستجو..."
+            pageSize={10}
+            emptyMessage="کاربری یافت نشد."
+          />
         </CardContent>
       </Card>
     </div>

@@ -3,6 +3,12 @@ import { Op } from 'sequelize';
 import Product from '../models/Product.js';
 import { NotFoundError } from '../utils/errors.js';
 import { createProductSchema, updateProductSchema } from '../validations/product.validation.js';
+import { getBasicSearchString, orILike, parsePagination } from '../utils/search.utils.js';
+import {
+  parseProductFiltersQuery,
+  parseProductListOrder,
+  whereFragmentsFromProductFilters,
+} from '../utils/productFilter.utils.js';
 
 /**
  * @swagger
@@ -61,6 +67,51 @@ export const createProduct = async (
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         description: Basic search on product name (preferred over `search`)
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         description: Same as `q` (legacy)
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: minPrice
+ *         description: Advanced filter — minimum unit price
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxPrice
+ *         description: Advanced filter — maximum unit price
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: filters
+ *         description: JSON array of filter tokens from the filter bar — `[{"key":"productName","operator":"contains","value":"..."}]` (keys productName, price, taxRate, createdAt)
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: sortBy
+ *         description: Sort field (whitelist id, productName, price, taxRate, createdAt)
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortOrder
+ *         description: asc or desc (default desc when omitted)
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
  *     responses:
  *       200:
  *         description: List of products
@@ -71,24 +122,48 @@ export const getProducts = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-    const offset = (page - 1) * limit;
-    const { search } = req.query;
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
+    const { minPrice, maxPrice } = req.query;
+    const filterTokens = parseProductFiltersQuery(
+      (req.query as Record<string, unknown>).filters
+    );
 
-    const where: any = {};
+    const conditions: Record<string, unknown>[] = [];
 
-    if (search) {
-      where[Op.or] = [
-        { productName: { [Op.iLike]: `%${search}%` } },
-      ];
+    if (q) {
+      conditions.push(orILike(['productName'], q));
     }
+
+    const priceBounds: Record<string | symbol, number> = {};
+    if (minPrice !== undefined && minPrice !== '') {
+      const n = Number(minPrice);
+      if (!Number.isNaN(n)) priceBounds[Op.gte] = n;
+    }
+    if (maxPrice !== undefined && maxPrice !== '') {
+      const n = Number(maxPrice);
+      if (!Number.isNaN(n)) priceBounds[Op.lte] = n;
+    }
+    if (Object.keys(priceBounds).length > 0) {
+      conditions.push({ price: priceBounds });
+    }
+
+    conditions.push(...whereFragmentsFromProductFilters(filterTokens));
+
+    const where: Record<string, unknown> =
+      conditions.length === 0
+        ? {}
+        : conditions.length === 1
+          ? conditions[0]
+          : { [Op.and]: conditions };
+
+    const order = parseProductListOrder(req.query as Record<string, unknown>);
 
     const { count, rows } = await Product.findAndCountAll({
       where,
       limit,
       offset,
-      order: [['createdAt', 'DESC']],
+      order,
     });
 
     res.json({

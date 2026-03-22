@@ -225,7 +225,7 @@ export interface Campaign {
 }
 
 /* ── Task ── */
-export type TaskStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED';
+export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
 export interface TaskAttachment {
   id: number;

@@ -27,7 +27,22 @@ export interface ListParams {
   page?: number;
   limit?: number;
   search?: string;
+  /** JSON string: `[{ "key", "operator", "value" }]` for structured list filters (e.g. products). */
+  filters?: string;
+  /** Server field name (whitelist per resource, e.g. products). */
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
   status?: string;
+  /** Customer list filter (NATURAL | LEGAL) */
+  customerType?: string;
+  /** Customer list — relationship type */
+  relationshipType?: string;
+  /** Customer list — active flag (`true` | `false`) */
+  isActive?: string;
+  /** ISO date (YYYY-MM-DD) — customers created on/after */
+  createdFrom?: string;
+  /** ISO date (YYYY-MM-DD) — customers created on/before */
+  createdTo?: string;
   customerId?: number;
   orderId?: number;
 }

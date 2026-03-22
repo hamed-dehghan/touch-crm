@@ -9,14 +9,15 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@svar-ui/react-grid": "^2.5.2",
+    "axios": "^1.7.9",
     "next": "16.1.6",
     "react": "19.2.3",
+    "react-date-object": "^2.1.9",
     "react-dom": "19.2.3",
-    "axios": "^1.7.9",
-    "zustand": "^5.0.2",
-    "recharts": "^2.15.0",
     "react-multi-date-picker": "^4.4.5",
-    "react-date-object": "^2.1.9"
+    "recharts": "^2.15.0",
+    "zustand": "^5.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

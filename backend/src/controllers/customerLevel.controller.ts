@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
 import CustomerLevel from '../models/CustomerLevel.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
+import { getBasicSearchString, orILike, parsePagination } from '../utils/search.utils.js';
 
 /**
  * @swagger
@@ -10,24 +12,86 @@ import { NotFoundError, ValidationError } from '../utils/errors.js';
  *     tags: [Customer Levels]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         description: Basic search on level name
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: minScoreAtLeast
+ *         description: Advanced filter — `min_score` greater or equal (levels starting at this band or higher)
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxScoreAtMost
+ *         description: Advanced filter — `max_score` less or equal
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of customer levels
  */
 export const getCustomerLevels = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const customerLevels = await CustomerLevel.findAll({
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
+    const { minScoreAtLeast, maxScoreAtMost } = req.query;
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
+
+    const where: Record<string, unknown> = {};
+    if (minScoreAtLeast !== undefined && minScoreAtLeast !== '') {
+      const n = Number(minScoreAtLeast);
+      if (!Number.isNaN(n)) {
+        where.minScore = { [Op.gte]: n };
+      }
+    }
+    if (maxScoreAtMost !== undefined && maxScoreAtMost !== '') {
+      const n = Number(maxScoreAtMost);
+      if (!Number.isNaN(n)) {
+        where.maxScore = { [Op.lte]: n };
+      }
+    }
+
+    const searchWhere =
+      q
+        ? {
+            [Op.and]: [where, orILike(['levelName'], q)],
+          }
+        : where;
+
+    const { count, rows } = await CustomerLevel.findAndCountAll({
+      where: searchWhere,
+      limit,
+      offset,
       order: [['minScore', 'ASC']],
     });
 
     res.json({
       success: true,
       data: {
-        customerLevels,
+        customerLevels: rows,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil(count / limit),
+        },
       },
     });
   } catch (error) {

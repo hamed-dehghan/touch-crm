@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
+import { Op } from 'sequelize';
 import User from '../models/User.js';
 import Role from '../models/Role.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 import { hashPassword } from '../utils/password.js';
 import { registerSchema } from '../validations/auth.validation.js';
+import { getBasicSearchString, orILike, parsePagination } from '../utils/search.utils.js';
 
 /**
  * @swagger
@@ -13,18 +15,70 @@ import { registerSchema } from '../validations/auth.validation.js';
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         description: Basic search on username, full name, email
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         description: Same as `q` (legacy)
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: roleId
+ *         description: Advanced filter
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: isActive
+ *         description: Advanced filter
+ *         schema:
+ *           type: string
+ *           enum: ['true', 'false']
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: List of users
  */
 export const getUsers = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const users = await User.findAll({
+    const q = getBasicSearchString(req.query as Record<string, unknown>);
+    const { roleId, isActive } = req.query;
+    const { page, limit, offset } = parsePagination(req.query as Record<string, unknown>);
+
+    const where: Record<string, unknown> = {};
+    if (roleId !== undefined && roleId !== '') {
+      where.roleId = Number(roleId);
+    }
+    if (isActive !== undefined && isActive !== '') {
+      where.isActive = isActive === 'true';
+    }
+
+    const searchWhere =
+      q
+        ? {
+            [Op.and]: [where, orILike(['username', 'fullName', 'email'], q)],
+          }
+        : where;
+
+    const { count, rows } = await User.findAndCountAll({
+      where: searchWhere,
       attributes: ['id', 'username', 'fullName', 'email', 'roleId', 'isActive', 'createdAt'],
+      limit,
+      offset,
       include: [{ model: Role, as: 'role', attributes: ['id', 'roleName'] }],
       order: [['createdAt', 'DESC']],
     });
@@ -32,7 +86,13 @@ export const getUsers = async (
     res.json({
       success: true,
       data: {
-        users,
+        users: rows,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil(count / limit),
+        },
       },
     });
   } catch (error) {

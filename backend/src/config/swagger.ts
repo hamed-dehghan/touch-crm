@@ -6,7 +6,8 @@ const swaggerDefinition: SwaggerDefinition = {
   info: {
     title: 'Touch CRM API',
     version: '1.0.0',
-    description: 'API documentation for Touch CRM and Customer Loyalty Platform',
+    description:
+      'API documentation for Touch CRM and Customer Loyalty Platform. List endpoints support basic search (`q`) and advanced filters; see repository file `backend/docs/SEARCH_API.md`.',
     contact: {
       name: 'API Support',
     },
