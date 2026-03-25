@@ -312,6 +312,49 @@ export const deleteRole = async (
   }
 };
 
+export const deleteRoles = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : null;
+    if (!rawIds || rawIds.length === 0) {
+      throw new ValidationError('ids must be a non-empty array');
+    }
+
+    const ids = [...new Set(rawIds.map((id: unknown) => Number(id)).filter((id: number) => Number.isInteger(id) && id > 0))];
+    if (ids.length !== rawIds.length) {
+      throw new ValidationError('ids must contain valid unique positive integers');
+    }
+
+    const roles = await Role.findAll({
+      where: { id: ids },
+      include: [{ model: User, as: 'users', attributes: ['id'] }],
+    });
+    if (roles.length !== ids.length) {
+      throw new ValidationError('One or more roles were not found');
+    }
+
+    const blockedRoleNames = roles
+      .filter((role: any) => Array.isArray(role.users) && role.users.length > 0)
+      .map((role: any) => role.roleName);
+    if (blockedRoleNames.length > 0) {
+      throw new ValidationError(`Cannot delete roles with assigned users: ${blockedRoleNames.join(', ')}`);
+    }
+
+    await Role.destroy({ where: { id: ids } });
+
+    res.json({
+      success: true,
+      data: { deletedCount: ids.length },
+      message: 'Roles deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * @swagger
  * /api/v1/permissions:

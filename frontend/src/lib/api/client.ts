@@ -1,6 +1,5 @@
 /**
  * API client contract — matches backend API contract.
- * Implementations: mock (default) or real (swap when backend is ready).
  */
 
 import type {
@@ -21,6 +20,7 @@ import type {
   Task,
   Project,
   WorkLog,
+  IranLocationNode,
 } from '@/types/api';
 
 export interface ListParams {
@@ -63,7 +63,7 @@ export interface CustomersApi {
 }
 
 export interface OrdersApi {
-  list(): Promise<ApiResponse<{ orders: Order[] }>>;
+  list(params?: { page?: number; limit?: number }): Promise<ApiResponse<{ orders: Order[]; pagination: Pagination }>>;
   getById(id: number): Promise<ApiResponse<{ order: Order }>>;
   create(body: { customerId: number; orderItems: { productId: number; quantity: number }[]; discountAmount?: number; taxAmount?: number; customerPromotionId?: number }): Promise<ApiResponse<{ order: Order }>>;
 }
@@ -133,7 +133,9 @@ export interface TasksApi {
 }
 
 export interface ProjectsApi {
-  list(params?: { customerId?: number }): Promise<ApiResponse<{ projects: Project[] }>>;
+  list(params?: { customerId?: number; page?: number; limit?: number }): Promise<
+    ApiResponse<{ projects: Project[]; pagination: Pagination }>
+  >;
   getById(id: number): Promise<ApiResponse<{ project: Project }>>;
   create(body: Partial<Project>): Promise<ApiResponse<{ project: Project }>>;
   update(id: number, body: Partial<Project>): Promise<ApiResponse<{ project: Project }>>;
@@ -143,6 +145,10 @@ export interface WorkLogsApi {
   list(params?: { userId?: number; customerId?: number; taskId?: number }): Promise<ApiResponse<{ workLogs: WorkLog[] }>>;
   create(body: { customerId?: number; taskId?: number; logDate: string; durationMinutes?: number; description: string; result: string }): Promise<ApiResponse<{ workLog: WorkLog }>>;
   getByCustomer(customerId: number): Promise<ApiResponse<{ workLogs: WorkLog[] }>>;
+}
+
+export interface LocationsApi {
+  getIranTree(): Promise<ApiResponse<{ locations: IranLocationNode[] }>>;
 }
 
 export interface ApiClient {
@@ -159,4 +165,5 @@ export interface ApiClient {
   tasks: TasksApi;
   projects: ProjectsApi;
   workLogs: WorkLogsApi;
+  locations: LocationsApi;
 }

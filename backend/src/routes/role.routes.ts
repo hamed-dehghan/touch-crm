@@ -5,6 +5,7 @@ import {
   createRole,
   updateRole,
   deleteRole,
+  deleteRoles,
   getPermissions,
   assignPermissions,
   removePermission,
@@ -25,6 +26,7 @@ router.get('/', authenticate, requirePermission('roles:manage'), getRoles);
 router.get('/permissions', authenticate, requirePermission('roles:manage'), getPermissions);
 router.get('/:id', authenticate, requirePermission('roles:manage'), getRoleById);
 router.post('/', authenticate, requirePermission('roles:manage'), createRole);
+router.delete('/', authenticate, requirePermission('roles:manage'), deleteRoles);
 router.put('/:id', authenticate, requirePermission('roles:manage'), updateRole);
 router.delete('/:id', authenticate, requirePermission('roles:manage'), deleteRole);
 router.post('/:id/permissions', authenticate, requirePermission('roles:manage'), assignPermissions);

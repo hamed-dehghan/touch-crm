@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { use, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Campaign } from '@/types/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -9,10 +9,10 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { CampaignDetailLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
 
-export default function CampaignDetailPage() {
-  const params = useParams();
+export default function CampaignDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const id = Number(params.id);
+  const { id: idParam } = use(params);
+  const id = Number(idParam);
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
   const [executing, setExecuting] = useState(false);

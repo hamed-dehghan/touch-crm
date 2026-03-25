@@ -16,8 +16,8 @@ import {
   type DataTableFilter,
   type FilterToken,
 } from '@/components/ui/DataTable';
-import { CustomerFormModal } from '@/components/customers/CustomerFormModal';
 import { buildCustomerListParamsFromTokens } from '@/lib/filterTokens';
+import { routes } from '@/lib/routes';
 
 const customerFilterDefinitions: DataTableFilter[] = [
   {
@@ -67,8 +67,6 @@ const customerFilterDefinitions: DataTableFilter[] = [
 export default function CustomersPage() {
   const router = useRouter();
   const dialogs = useAppDialogs();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editCustomerId, setEditCustomerId] = useState<number | undefined>();
   const [savedTick, setSavedTick] = useState(0);
 
   const fetchCustomers = useCallback(
@@ -99,16 +97,6 @@ export default function CustomersPage() {
     },
     [savedTick],
   );
-
-  const openCreateModal = () => {
-    setEditCustomerId(undefined);
-    setModalOpen(true);
-  };
-
-  const openEditModal = (id: number) => {
-    setEditCustomerId(id);
-    setModalOpen(true);
-  };
 
   const statusVariant = (s: string) =>
     s === 'CUSTOMER' ? 'success' : s === 'OPPORTUNITY' ? 'warning' : s === 'LOST' ? 'danger' : 'default';
@@ -213,13 +201,13 @@ export default function CustomersPage() {
       label: 'مشاهده',
       variant: 'ghost',
       onClick: (row) => {
-        router.push(`/customers/${row.id}`);
+        router.push(routes.customer(row.id));
       },
     },
     {
       label: 'ویرایش',
       variant: 'primary',
-      onClick: (row) => openEditModal(row.id),
+      onClick: (row) => router.push(routes.customerEdit(row.id)),
       triggerOnRowDoubleClick: true,
     },
     {
@@ -241,7 +229,7 @@ export default function CustomersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">مشتریان</h1>
-        <Button onClick={openCreateModal}>ثبت مشتری جدید</Button>
+        <Button onClick={() => router.push(routes.customerNew)}>ثبت مشتری جدید</Button>
       </div>
       <Card>
         <CardHeader>
@@ -264,12 +252,6 @@ export default function CustomersPage() {
         </CardContent>
       </Card>
 
-      <CustomerFormModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        customerId={editCustomerId}
-        onSaved={() => setSavedTick((k) => k + 1)}
-      />
     </div>
   );
 }

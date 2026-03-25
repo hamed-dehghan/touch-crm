@@ -1,8 +1,12 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import type { CustomerAddress } from '@/types/api';
+import { api } from '@/lib/api';
 import { Input } from '@/components/ui/Input';
+import { AutocompleteSelect } from '@/components/ui/AutocompleteSelect';
 import { Button } from '@/components/ui/Button';
+import { TrashIcon } from '@/components/ui/icons';
 
 interface AddressFieldArrayProps {
   addresses: CustomerAddress[];
@@ -18,6 +22,37 @@ const emptyAddress: CustomerAddress = {
 };
 
 export function AddressFieldArray({ addresses, onChange }: AddressFieldArrayProps) {
+  const [locationTree, setLocationTree] = useState<Array<{ province: string; cities: string[] }>>([]);
+
+  useEffect(() => {
+    api.locations.getIranTree().then((res) => {
+      if (res.success && res.data) {
+        setLocationTree(res.data.locations);
+      }
+    });
+  }, []);
+
+  const cityTreeOptions = useMemo(
+    () =>
+      locationTree.flatMap((p) => [
+        {
+          value: `__province__${p.province}`,
+          label: p.province,
+          keywords: p.province,
+          disabled: true,
+          level: 0,
+          isGroupHeader: true,
+        },
+        ...p.cities.map((city) => ({
+          value: `${p.province}::${city}`,
+          label: city,
+          keywords: `${p.province} ${city}`,
+          level: 1,
+        })),
+      ]),
+    [locationTree]
+  );
+
   const addAddress = () => {
     const isFirst = addresses.length === 0;
     onChange([...addresses, { ...emptyAddress, isDefault: isFirst }]);
@@ -37,6 +72,20 @@ export function AddressFieldArray({ addresses, onChange }: AddressFieldArrayProp
       return { ...a, [field]: value };
     });
     onChange(updated);
+  };
+
+  const updateCityTreeValue = (index: number, value: string) => {
+    const [province = '', city = ''] = value.split('::');
+    const updated = addresses.map((a, i) => {
+      if (i !== index) return a;
+      return { ...a, province, city };
+    });
+    onChange(updated);
+  };
+
+  const cityTreeValue = (addr: CustomerAddress): string => {
+    if (!addr.province || !addr.city) return '';
+    return `${addr.province}::${addr.city}`;
   };
 
   const setDefault = (index: number) => {
@@ -64,30 +113,49 @@ export function AddressFieldArray({ addresses, onChange }: AddressFieldArrayProp
                 />
                 پیش‌فرض
               </label>
-              <Button type="button" variant="ghost" size="sm" onClick={() => removeAddress(index)} className="text-red-500 hover:text-red-700">
-                &times;
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => removeAddress(index)}
+                aria-label="حذف آدرس"
+                title="حذف آدرس"
+                className="h-10 w-10 p-0 text-red-500 hover:text-red-700"
+              >
+                <TrashIcon className="h-4 w-4" />
               </Button>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {cityTreeOptions.length > 0 ? (
+              <AutocompleteSelect
+                label="استان / شهر"
+                searchPlaceholder="جستجوی استان یا شهر..."
+                value={cityTreeValue(addr)}
+                onChange={(next) => updateCityTreeValue(index, next)}
+                options={cityTreeOptions}
+              />
+            ) : (
+              <Input
+                label="شهر"
+                value={addr.city || ''}
+                onChange={(e) => updateAddress(index, 'city', e.target.value)}
+              />
+            )}
             <Input
-              placeholder="استان"
-              value={addr.province || ''}
-              onChange={(e) => updateAddress(index, 'province', e.target.value)}
-            />
-            <Input
-              placeholder="شهر"
-              value={addr.city || ''}
-              onChange={(e) => updateAddress(index, 'city', e.target.value)}
-            />
-            <Input
-              placeholder="کد پستی"
+              label="کد پستی"
               value={addr.postalCode || ''}
-              onChange={(e) => updateAddress(index, 'postalCode', e.target.value)}
+              inputMode="numeric"
+              maxLength={10}
+              onChange={(e) => {
+                // Keep digits only so backend validation doesn't fail unexpectedly.
+                const digits = String(e.target.value).replace(/\D/g, '').slice(0, 10);
+                updateAddress(index, 'postalCode', digits);
+              }}
             />
           </div>
           <Input
-            placeholder="آدرس دقیق"
+            label="آدرس دقیق"
             value={addr.address || ''}
             onChange={(e) => updateAddress(index, 'address', e.target.value)}
           />

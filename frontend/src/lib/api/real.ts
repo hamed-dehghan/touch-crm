@@ -2,7 +2,7 @@
 
 import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 import type { ApiClient } from './client';
-import { mockApiClient } from './mock';
+import { getApiErrorMessage } from './messages';
 import type {
   ApiResponse,
   Role,
@@ -20,6 +20,7 @@ import type {
   Promotion,
   CustomerPromotion,
   Campaign,
+  IranLocationNode,
 } from '@/types/api';
 import { useAuthStore } from '@/store/authStore';
 
@@ -81,7 +82,11 @@ async function request<T>(config: AxiosRequestConfig): Promise<ApiResponse<T>> {
     }
 
     if (err.response?.data && typeof err.response.data === 'object' && 'success' in err.response.data) {
-      return err.response.data as ApiResponse<T>;
+      const apiResponse = err.response.data as ApiResponse<T>;
+      if (!apiResponse.success && apiResponse.error) {
+        apiResponse.error.message = getApiErrorMessage(apiResponse.error);
+      }
+      return apiResponse;
     }
 
     const message =
@@ -93,7 +98,7 @@ async function request<T>(config: AxiosRequestConfig): Promise<ApiResponse<T>> {
       success: false,
       error: {
         statusCode,
-        message,
+        message: getApiErrorMessage({ statusCode, message }),
       },
     };
   }
@@ -157,17 +162,10 @@ const customersApi: ApiClient['customers'] = {
     });
   },
   async getRfm(id) {
-    const rfmResponse = await request<CustomerRfmResponse>({
+    return request<CustomerRfmResponse>({
       method: 'GET',
       url: `/customers/${id}/rfm`,
     });
-
-    // Backend route may not exist yet; keep page functional by falling back to mock.
-    if (!rfmResponse.success && rfmResponse.error?.statusCode === 404) {
-      return mockApiClient.customers.getRfm(id);
-    }
-
-    return rfmResponse;
   },
 };
 
@@ -345,7 +343,7 @@ const tasksApi: ApiClient['tasks'] = {
 
 const projectsApi: ApiClient['projects'] = {
   list(params) {
-    return request<{ projects: Project[] }>({
+    return request<{ projects: Project[]; pagination: Pagination }>({
       method: 'GET',
       url: '/projects',
       params,
@@ -374,10 +372,11 @@ const projectsApi: ApiClient['projects'] = {
 };
 
 const ordersApi: ApiClient['orders'] = {
-  list() {
-    return request<{ orders: Order[] }>({
+  list(params) {
+    return request<{ orders: Order[]; pagination: Pagination }>({
       method: 'GET',
       url: '/orders',
+      params,
     });
   },
   getById(id) {
@@ -531,6 +530,15 @@ const campaignsApi: ApiClient['campaigns'] = {
   },
 };
 
+const locationsApi: ApiClient['locations'] = {
+  getIranTree() {
+    return request<{ locations: IranLocationNode[] }>({
+      method: 'GET',
+      url: '/locations/iran',
+    });
+  },
+};
+
 export const realApiClient: ApiClient = {
   auth: authApi,
   customers: customersApi,
@@ -545,5 +553,6 @@ export const realApiClient: ApiClient = {
   tasks: tasksApi,
   projects: projectsApi,
   workLogs: workLogsApi,
+  locations: locationsApi,
 };
 

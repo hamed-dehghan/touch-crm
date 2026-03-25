@@ -1,15 +1,19 @@
 'use client';
 
 import {
+  Fragment,
   useState,
   useEffect,
   useCallback,
+  useMemo,
   useRef,
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { toEnglishDigits } from '@/utils/digits';
 import { Button } from './Button';
 import { Skeleton } from './Skeleton';
+import { PersianDatePicker } from './DatePicker';
 
 /* ─── Types ─── */
 
@@ -17,7 +21,10 @@ export interface DataTableColumn<T> {
   key: string;
   title: string;
   render?: (row: T) => ReactNode;
-  /** Pin this column so it stays visible while scrolling horizontally */
+  /**
+   * Legacy flag.
+   * Column pinning is now user-controlled and persisted in `localStorage`.
+   */
   sticky?: boolean;
   /** Show sort control in header; `fetchData` receives `sortBy` / `sortOrder`. */
   sortable?: boolean;
@@ -69,11 +76,19 @@ export interface DataTableFilterOption {
 export interface DataTableFilter {
   key: string;
   label: string;
-  type: 'text' | 'select' | 'number' | 'date';
+  type: 'text' | 'select' | 'number' | 'date' | 'time' | 'autocomplete';
   operators?: { value: string; label: string }[];
-  options?: DataTableFilterOption[] | (() => Promise<DataTableFilterOption[]>);
+  /**
+   * Static options array, or an async loader.
+   * For `type: 'autocomplete'` the function receives the current query string
+   * so you can hit an API endpoint: `(query) => api.search(query)`.
+   */
+  options?: DataTableFilterOption[] | ((query?: string) => Promise<DataTableFilterOption[]>);
   icon?: ReactNode;
 }
+
+/** Logical combiner with the previous predicate (left-associative); ignored on the first token. */
+export type FilterJunction = 'and' | 'or' | 'xor' | 'nand' | 'nor' | 'xnor';
 
 export interface FilterToken {
   id: string;
@@ -82,6 +97,52 @@ export interface FilterToken {
   value: string;
   label: string;
   valueLabel: string;
+  /** How this token combines with the result so far; omitted on first chip (treated as AND when missing on later tokens for backward compatibility). */
+  junction?: FilterJunction;
+}
+
+const JUNCTION_OPTIONS: { value: FilterJunction; label: string }[] = [
+  { value: 'and', label: 'و (AND)' },
+  { value: 'or', label: 'یا (OR)' },
+  { value: 'xor', label: 'یای انحصاری (XOR)' },
+  { value: 'nand', label: 'NAND' },
+  { value: 'nor', label: 'NOR' },
+  { value: 'xnor', label: 'XNOR' },
+];
+
+/** Top of the filter key dropdown when adding a 2+ condition — «و» / «یا» first, then full set (left-associative). */
+const FILTERBOX_JUNCTION_ROWS: { value: FilterJunction; label: string; description: string }[] = [
+  { value: 'and', label: 'و', description: 'همهٔ این شرط و شرط قبلی برقرار باشند' },
+  { value: 'or', label: 'یا', description: 'حداقل یکی از این شرط یا شرط قبلی برقرار باشد' },
+  {
+    value: 'xor',
+    label: 'یای انحصاری',
+    description: 'دقیقاً یکی از دو شرط برقرار باشد (XOR)',
+  },
+  { value: 'nand', label: 'NAND', description: 'نقیضِ «هم این هم قبلی»' },
+  { value: 'nor', label: 'NOR', description: 'نقیضِ «این یا قبلی یا هر دو»' },
+  { value: 'xnor', label: 'XNOR', description: 'هر دو یکسان (هر دو برقرار یا هیچ‌کدام)' },
+];
+
+function junctionLabel(j: FilterJunction | undefined): string {
+  const v = j ?? 'and';
+  return JUNCTION_OPTIONS.find((o) => o.value === v)?.label ?? v;
+}
+
+/** Compact chip text in the filter bar; full Persian + mnemonic in the dropdown (`junctionLabel`). */
+function junctionChipLabel(j: FilterJunction | undefined): string {
+  const v = j ?? 'and';
+  return v.toUpperCase();
+}
+
+/** First token must not carry a junction; later tokens default to AND when unset. */
+function normalizeFilterTokens(tokens: FilterToken[]): FilterToken[] {
+  if (!tokens.length) return [];
+  const [first, ...rest] = tokens;
+  return [
+    { ...first, junction: undefined },
+    ...rest.map((t) => ({ ...t, junction: t.junction ?? 'and' })),
+  ];
 }
 
 export interface DataTableProps<T> {
@@ -165,6 +226,15 @@ const DEFAULT_OPERATORS: Record<DataTableFilter['type'], { value: string; label:
     { value: 'is', label: 'برابر است' },
     { value: 'before', label: 'قبل از' },
     { value: 'after', label: 'بعد از' },
+  ],
+  time: [
+    { value: 'is', label: 'برابر است' },
+    { value: 'before', label: 'قبل از' },
+    { value: 'after', label: 'بعد از' },
+  ],
+  autocomplete: [
+    { value: 'is', label: 'برابر است' },
+    { value: 'is_not', label: 'نیست' },
   ],
 };
 
@@ -254,7 +324,7 @@ function PaginationBar({
   }, [isCustomPageSize]);
 
   const applyCustom = () => {
-    const n = Math.floor(Number(customInput));
+    const n = Math.floor(Number(toEnglishDigits(customInput)));
     if (!Number.isFinite(n)) return;
     if (n < 1) return;
     if (n === limit) return;
@@ -305,12 +375,33 @@ function PaginationBar({
               min={1}
               value={customInput}
               disabled={disabled}
-              onChange={(e) => setCustomInput(e.target.value)}
+              onChange={(e) => setCustomInput(toEnglishDigits(e.target.value))}
               onBlur={applyCustom}
               onKeyDown={(e) => {
+                // Support Persian/Arabic digits even when input type is `number`.
+                const normalizedKey = toEnglishDigits(e.key);
+                const isAsciiDigit = /^[0-9]$/.test(normalizedKey);
+                if (!e.ctrlKey && !e.metaKey && !e.altKey && normalizedKey !== e.key && isAsciiDigit) {
+                  e.preventDefault();
+                  const el = e.currentTarget;
+                  const start = el.selectionStart ?? customInput.length;
+                  const end = el.selectionEnd ?? customInput.length;
+                  const nextValue = customInput.slice(0, start) + normalizedKey + customInput.slice(end);
+                  setCustomInput(nextValue);
+                  requestAnimationFrame(() => {
+                    try {
+                      el.setSelectionRange(start + 1, start + 1);
+                    } catch {
+                      // ignore
+                    }
+                  });
+                  return;
+                }
+
                 if (e.key === 'Enter') applyCustom();
               }}
-              className="h-9 w-24 rounded-lg border border-[var(--color-border)] bg-white px-2.5 text-sm text-foreground focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-60"
+            className="h-9 w-24 rounded-lg border border-[var(--color-border)] bg-white px-2.5 text-sm text-foreground text-left focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-60"
+            dir="ltr"
             />
           )}
         </div>
@@ -625,16 +716,52 @@ function FilteredSearchBar({
   const [valueInput, setValueInput] = useState('');
   const [asyncOptions, setAsyncOptions] = useState<DataTableFilterOption[]>([]);
   const [highlightIdx, setHighlightIdx] = useState(-1);
+  const [autocompleteLoading, setAutocompleteLoading] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const clickedInsideDropdownRef = useRef(false);
+  const autocompleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [junctionMenuForId, setJunctionMenuForId] = useState<string | null>(null);
+  const junctionMenuAnchorRef = useRef<HTMLButtonElement | null>(null);
+  const junctionMenuRef = useRef<HTMLDivElement>(null);
+  const clickedInsideJunctionMenuRef = useRef(false);
+  /** Logical link to the previous chip when adding another condition from the filterbox (dropdown «و» / «یا» / …). */
+  const [pendingNextJunction, setPendingNextJunction] = useState<FilterJunction>('and');
 
   /** Allow the same field multiple times (e.g. two price bounds) — search runs only when user clicks Search. */
   const availableFilters = filters;
 
   const getOperators = (f: DataTableFilter) => f.operators ?? DEFAULT_OPERATORS[f.type] ?? [];
+
+  /** Lists used for keyboard highlight — must match what `renderDropdown` renders. */
+  const filteredKeyOptions = useMemo(() => {
+    if (step !== 'selectKey') return [];
+    return freeText
+      ? availableFilters.filter((f) => f.label.toLowerCase().includes(freeText.toLowerCase()))
+      : availableFilters;
+  }, [step, freeText, availableFilters]);
+
+  const showJunctionRowsInKeyStep =
+    step === 'selectKey' && tokens.length > 0 && !freeText.trim();
+  const keyStepJunctionCount = showJunctionRowsInKeyStep ? FILTERBOX_JUNCTION_ROWS.length : 0;
+  const keyStepListLength = step === 'selectKey' ? keyStepJunctionCount + filteredKeyOptions.length : 0;
+
+  const operatorOptions = useMemo(() => {
+    if (step !== 'selectOperator' || !activeFilter) return [];
+    return getOperators(activeFilter);
+  }, [step, activeFilter]);
+
+  const filteredSelectOptions = useMemo(() => {
+    if (step !== 'selectValue' || !activeFilter) return [];
+    if (activeFilter.type === 'autocomplete') return asyncOptions;
+    if (activeFilter.type !== 'select') return [];
+    const opts = asyncOptions;
+    if (!valueInput.trim()) return opts;
+    const q = valueInput.toLowerCase();
+    return opts.filter((o) => String(o.label).toLowerCase().includes(q));
+  }, [step, activeFilter, asyncOptions, valueInput]);
 
   useEffect(() => {
     if (step === 'idle') return;
@@ -643,6 +770,14 @@ function FilteredSearchBar({
         clickedInsideDropdownRef.current = false;
         return;
       }
+      // Allow interacting with Jalali datepicker popup without closing the filter step.
+      // `react-multi-date-picker` renders elements with these classnames.
+      const el = e.target as HTMLElement | null;
+      const inDatePicker =
+        step === 'selectValue' &&
+        activeFilter?.type === 'date' &&
+        Boolean(el?.closest?.('.rmdp-wrapper, .rmdp-container, .rmdp-calendar, .rmdp-shadow'));
+      if (inDatePicker) return;
       const target = e.target as Node;
       const insideContainer = containerRef.current?.contains(target);
       const insideDropdown = dropdownRef.current?.contains(target);
@@ -661,6 +796,81 @@ function FilteredSearchBar({
     };
   }, [step]);
 
+  useEffect(() => {
+    if (!junctionMenuForId) return undefined;
+    const onDown = (e: MouseEvent) => {
+      if (clickedInsideJunctionMenuRef.current) {
+        clickedInsideJunctionMenuRef.current = false;
+        return;
+      }
+      const t = e.target as Node;
+      if (junctionMenuRef.current?.contains(t)) return;
+      if (junctionMenuAnchorRef.current?.contains(t)) return;
+      setJunctionMenuForId(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setJunctionMenuForId(null);
+    };
+    document.addEventListener('mousedown', onDown, true);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown, true);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [junctionMenuForId]);
+
+  /** When operator list is open there is no text input — focus the dropdown for Arrow/Enter. */
+  useEffect(() => {
+    if (step !== 'selectOperator') return undefined;
+    const id = requestAnimationFrame(() => {
+      dropdownRef.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [step]);
+
+  /** Keep keyboard highlight in range when filter text narrows the list. */
+  useEffect(() => {
+    if (step === 'selectKey') {
+      setHighlightIdx((i) => {
+        const n = keyStepListLength;
+        if (n === 0) return -1;
+        if (i < 0) return i;
+        return Math.min(i, n - 1);
+      });
+    } else if (step === 'selectOperator') {
+      setHighlightIdx((i) => {
+        const n = operatorOptions.length;
+        if (n === 0) return -1;
+        if (i < 0) return i;
+        return Math.min(i, n - 1);
+      });
+    } else if (step === 'selectValue' && (activeFilter?.type === 'select' || activeFilter?.type === 'autocomplete')) {
+      setHighlightIdx((i) => {
+        const n = filteredSelectOptions.length;
+        if (n === 0) return -1;
+        if (i < 0) return i;
+        return Math.min(i, n - 1);
+      });
+    }
+  }, [step, activeFilter?.type, keyStepListLength, operatorOptions, filteredSelectOptions]);
+
+  /** Scroll highlighted option into view for long lists. */
+  useEffect(() => {
+    if (highlightIdx < 0) return;
+    const id =
+      step === 'selectKey'
+        ? `filter-key-${highlightIdx}`
+        : step === 'selectOperator'
+          ? `filter-op-${highlightIdx}`
+          : step === 'selectValue' && (activeFilter?.type === 'select' || activeFilter?.type === 'autocomplete')
+            ? `filter-val-${highlightIdx}`
+            : null;
+    if (!id) return;
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  }, [highlightIdx, step, activeFilter?.type]);
+
   const resetDropdown = () => {
     setStep('idle');
     setActiveFilter(null);
@@ -668,21 +878,28 @@ function FilteredSearchBar({
     setValueInput('');
     setAsyncOptions([]);
     setHighlightIdx(-1);
+    setAutocompleteLoading(false);
+    setJunctionMenuForId(null);
+    setPendingNextJunction('and');
+    if (autocompleteTimerRef.current) clearTimeout(autocompleteTimerRef.current);
   };
 
   const openKeySelection = () => {
     if (availableFilters.length > 0) {
       setStep('selectKey');
       setHighlightIdx(-1);
+      if (tokens.length > 0) setPendingNextJunction('and');
     }
   };
 
   const selectKey = (filter: DataTableFilter) => {
+    /** Clear the typed query used to find this field so it doesn't stay in the bar. */
+    onFreeTextChange('');
     setActiveFilter(filter);
     const ops = getOperators(filter);
     if (ops.length === 1) {
       setActiveOperator(ops[0].value);
-      enterValueStep(filter);
+      void enterValueStep(filter);
     } else {
       setStep('selectOperator');
       setHighlightIdx(-1);
@@ -691,7 +908,7 @@ function FilteredSearchBar({
 
   const selectOperator = (op: string) => {
     setActiveOperator(op);
-    enterValueStep(activeFilter!);
+    void enterValueStep(activeFilter!);
   };
 
   const enterValueStep = async (filter: DataTableFilter) => {
@@ -705,8 +922,37 @@ function FilteredSearchBar({
       } else {
         setAsyncOptions(filter.options);
       }
+    } else if (filter.type === 'autocomplete') {
+      setAsyncOptions([]);
     }
   };
+
+  /** Debounced search for autocomplete filters */
+  useEffect(() => {
+    if (step !== 'selectValue' || !activeFilter || activeFilter.type !== 'autocomplete') return;
+    if (typeof activeFilter.options !== 'function') return;
+    if (!valueInput.trim()) {
+      setAsyncOptions([]);
+      return;
+    }
+    const optsFn = activeFilter.options;
+    if (autocompleteTimerRef.current) clearTimeout(autocompleteTimerRef.current);
+    setAutocompleteLoading(true);
+    autocompleteTimerRef.current = setTimeout(async () => {
+      try {
+        const results = await optsFn(valueInput.trim());
+        setAsyncOptions(results);
+        setHighlightIdx(results.length > 0 ? 0 : -1);
+      } catch {
+        setAsyncOptions([]);
+      } finally {
+        setAutocompleteLoading(false);
+      }
+    }, 300);
+    return () => {
+      if (autocompleteTimerRef.current) clearTimeout(autocompleteTimerRef.current);
+    };
+  }, [step, activeFilter, valueInput]);
 
   const commitToken = (value: string, valueLabel: string) => {
     if (!activeFilter || !activeOperator) return;
@@ -718,57 +964,172 @@ function FilteredSearchBar({
       label: activeFilter.label,
       valueLabel,
     };
-    onTokensChange([...tokens, token]);
+    if (tokens.length > 0) token.junction = pendingNextJunction;
+    onTokensChange(normalizeFilterTokens([...tokens, token]));
     resetDropdown();
     inputRef.current?.focus();
   };
 
   const removeToken = (id: string) => {
-    onTokensChange(tokens.filter((t) => t.id !== id));
+    onTokensChange(normalizeFilterTokens(tokens.filter((t) => t.id !== id)));
   };
 
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const setTokenJunction = (tokenId: string, junction: FilterJunction) => {
+    onTokensChange(
+      normalizeFilterTokens(tokens.map((t) => (t.id === tokenId ? { ...t, junction } : t))),
+    );
+    setJunctionMenuForId(null);
+  };
+
+  /**
+   * Unified keyboard handling for filter field → operator → value (list or text).
+   * Used on the main input, value input, and the dropdown panel (when no text field is focused).
+   */
+  const handleKeyboardNav = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       resetDropdown();
       e.preventDefault();
+      e.stopPropagation();
       return;
     }
+
+    const moveHighlight = (dir: 1 | -1, len: number) => {
+      if (len <= 0) return;
+      setHighlightIdx((i) => {
+        if (dir === 1) {
+          if (i < 0) return 0;
+          return Math.min(len - 1, i + 1);
+        }
+        if (i <= 0) return -1;
+        return Math.max(0, i - 1);
+      });
+    };
+
+    if (e.key === 'ArrowDown') {
+      if (step === 'idle' && availableFilters.length > 0) {
+        e.preventDefault();
+        openKeySelection();
+        setHighlightIdx(0);
+        return;
+      }
+      if (step === 'selectKey') {
+        e.preventDefault();
+        moveHighlight(1, keyStepListLength);
+        return;
+      }
+      if (step === 'selectOperator') {
+        e.preventDefault();
+        moveHighlight(1, operatorOptions.length);
+        return;
+      }
+      if (step === 'selectValue' && (activeFilter?.type === 'select' || activeFilter?.type === 'autocomplete')) {
+        e.preventDefault();
+        moveHighlight(1, filteredSelectOptions.length);
+        return;
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
+      if (step === 'selectKey') {
+        e.preventDefault();
+        moveHighlight(-1, keyStepListLength);
+        return;
+      }
+      if (step === 'selectOperator') {
+        e.preventDefault();
+        moveHighlight(-1, operatorOptions.length);
+        return;
+      }
+      if (step === 'selectValue' && (activeFilter?.type === 'select' || activeFilter?.type === 'autocomplete')) {
+        e.preventDefault();
+        moveHighlight(-1, filteredSelectOptions.length);
+        return;
+      }
+      return;
+    }
+
     if (e.key === 'Enter') {
+      if (step === 'selectKey') {
+        e.preventDefault();
+        if (highlightIdx >= 0 && highlightIdx < keyStepJunctionCount) {
+          setPendingNextJunction(FILTERBOX_JUNCTION_ROWS[highlightIdx].value);
+          return;
+        }
+        const fieldIdx = highlightIdx - keyStepJunctionCount;
+        if (fieldIdx >= 0 && fieldIdx < filteredKeyOptions.length) {
+          selectKey(filteredKeyOptions[fieldIdx]);
+        } else {
+          onSearch();
+          resetDropdown();
+        }
+        return;
+      }
+      if (step === 'selectOperator') {
+        e.preventDefault();
+        let idx = highlightIdx;
+        if (idx < 0 && operatorOptions.length === 1) idx = 0;
+        if (idx >= 0 && idx < operatorOptions.length) {
+          selectOperator(operatorOptions[idx].value);
+        }
+        return;
+      }
       if (step === 'selectValue') {
+        if (activeFilter?.type === 'select' || activeFilter?.type === 'autocomplete') {
+          e.preventDefault();
+          if (highlightIdx >= 0 && highlightIdx < filteredSelectOptions.length) {
+            const opt = filteredSelectOptions[highlightIdx];
+            commitToken(String(opt.value), opt.label);
+          }
+          return;
+        }
         if (valueInput.trim()) {
+          e.preventDefault();
           commitToken(valueInput.trim(), valueInput.trim());
         }
-        e.preventDefault();
         return;
       }
-      if (step === 'selectKey' && highlightIdx >= 0 && highlightIdx < availableFilters.length) {
-        selectKey(availableFilters[highlightIdx]);
+      if (step === 'idle') {
         e.preventDefault();
-        return;
-      }
-      if (step === 'idle' || step === 'selectKey') {
         onSearch();
         resetDropdown();
-        e.preventDefault();
-        return;
       }
-    }
-    if (e.key === 'Backspace' && freeText === '' && step === 'idle' && tokens.length > 0) {
-      removeToken(tokens[tokens.length - 1].id);
       return;
     }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setHighlightIdx((i) => i + 1);
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlightIdx((i) => Math.max(-1, i - 1));
+
+    if (e.key === 'Backspace') {
+      if (step === 'selectValue' && valueInput === '') {
+        e.preventDefault();
+        setStep('selectOperator');
+        setActiveOperator(null);
+        setValueInput('');
+        setAsyncOptions([]);
+        setHighlightIdx(-1);
+        return;
+      }
+      if (step === 'selectOperator') {
+        e.preventDefault();
+        setStep('selectKey');
+        setActiveFilter(null);
+        setActiveOperator(null);
+        setHighlightIdx(-1);
+        inputRef.current?.focus();
+        return;
+      }
+      if (step === 'selectKey' && freeText === '') {
+        if (tokens.length > 0) {
+          removeToken(tokens[tokens.length - 1].id);
+        }
+        return;
+      }
+      if (step === 'idle' && freeText === '' && tokens.length > 0) {
+        removeToken(tokens[tokens.length - 1].id);
+      }
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onFreeTextChange(e.target.value);
+    onFreeTextChange(toEnglishDigits(e.target.value));
     if (step === 'idle' && e.target.value !== '') {
       openKeySelection();
     }
@@ -790,37 +1151,80 @@ function FilteredSearchBar({
     let items: ReactNode = null;
 
     if (step === 'selectKey') {
-      const filtered = freeText
-        ? availableFilters.filter((f) => f.label.includes(freeText))
-        : availableFilters;
-      items = filtered.length === 0 ? (
-        <div className="px-3 py-2 text-sm text-foreground/50">فیلتری یافت نشد</div>
-      ) : (
-        filtered.map((f, i) => (
-          <button
-            key={f.key}
-            type="button"
-            className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right transition-colors hover:bg-active-bg/30 ${
-              i === highlightIdx ? 'bg-active-bg/30' : ''
-            }`}
-            onClick={() => selectKey(f)}
-          >
-            {f.icon && <span className="w-4 h-4 shrink-0">{f.icon}</span>}
-            <span>{f.label}</span>
-            <span className="mr-auto text-foreground/30 text-xs">
-              {f.type === 'text' ? 'متن' : f.type === 'number' ? 'عدد' : f.type === 'select' ? 'انتخاب' : 'تاریخ'}
-            </span>
-          </button>
-        ))
+      const junctionBlock =
+        showJunctionRowsInKeyStep ? (
+          <>
+            <div className="px-3 pt-2 pb-1 text-[11px] font-medium text-foreground/45">ترکیب با شرط قبلی</div>
+            {FILTERBOX_JUNCTION_ROWS.map((row, i) => (
+              <button
+                key={row.value}
+                type="button"
+                id={`filter-key-${i}`}
+                className={`w-full flex flex-col items-stretch gap-0.5 px-3 py-2 text-sm text-right transition-colors hover:bg-active-bg/30 ${
+                  i === highlightIdx ? 'bg-active-bg/30' : ''
+                } ${pendingNextJunction === row.value ? 'border-r-2 border-r-accent bg-accent/5' : ''}`}
+                onClick={() => setPendingNextJunction(row.value)}
+              >
+                <span className="font-semibold text-foreground">{row.label}</span>
+                <span className="text-xs text-foreground/45 leading-snug">{row.description}</span>
+              </button>
+            ))}
+            <div className="px-3 pt-2 pb-1 text-[11px] font-medium text-foreground/45 border-t border-[var(--color-border)]">
+              فیلد
+            </div>
+          </>
+        ) : null;
+
+      const fieldBlock =
+        filteredKeyOptions.length === 0 ? (
+          <div className="px-3 py-2 text-sm text-foreground/50">فیلتری یافت نشد</div>
+        ) : (
+          filteredKeyOptions.map((f, i) => {
+            const rowIdx = keyStepJunctionCount + i;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                id={`filter-key-${rowIdx}`}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right transition-colors hover:bg-active-bg/30 ${
+                  rowIdx === highlightIdx ? 'bg-active-bg/30' : ''
+                }`}
+                onClick={() => selectKey(f)}
+              >
+                {f.icon && <span className="w-4 h-4 shrink-0">{f.icon}</span>}
+                <span>{f.label}</span>
+                <span className="mr-auto text-foreground/30 text-xs">
+                  {f.type === 'text'
+                    ? 'متن'
+                    : f.type === 'number'
+                      ? 'عدد'
+                      : f.type === 'select'
+                        ? 'انتخاب'
+                        : f.type === 'autocomplete'
+                          ? 'جستجو'
+                          : f.type === 'date'
+                            ? 'تاریخ'
+                            : 'زمان'}
+                </span>
+              </button>
+            );
+          })
+        );
+
+      items = (
+        <>
+          {junctionBlock}
+          {fieldBlock}
+        </>
       );
     }
 
     if (step === 'selectOperator' && activeFilter) {
-      const ops = getOperators(activeFilter);
-      items = ops.map((op, i) => (
+      items = operatorOptions.map((op, i) => (
         <button
           key={op.value}
           type="button"
+          id={`filter-op-${i}`}
           className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right transition-colors hover:bg-active-bg/30 ${
             i === highlightIdx ? 'bg-active-bg/30' : ''
           }`}
@@ -833,17 +1237,38 @@ function FilteredSearchBar({
 
     if (step === 'selectValue' && activeFilter) {
       if (activeFilter.type === 'select') {
-        const opts = asyncOptions;
-        const filtered = valueInput
-          ? opts.filter((o) => o.label.includes(valueInput))
-          : opts;
-        items = filtered.length === 0 ? (
-          <div className="px-3 py-2 text-sm text-foreground/50">گزینه‌ای یافت نشد</div>
-        ) : (
-          filtered.map((opt, i) => (
+        items =
+          filteredSelectOptions.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-foreground/50">گزینه‌ای یافت نشد</div>
+          ) : (
+            filteredSelectOptions.map((opt, i) => (
+              <button
+                key={String(opt.value)}
+                type="button"
+                id={`filter-val-${i}`}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right transition-colors hover:bg-active-bg/30 ${
+                  i === highlightIdx ? 'bg-active-bg/30' : ''
+                }`}
+                onClick={() => commitToken(String(opt.value), opt.label)}
+              >
+                <span>{opt.label}</span>
+              </button>
+            ))
+          );
+      }
+      if (activeFilter.type === 'autocomplete') {
+        if (autocompleteLoading) {
+          items = <div className="px-3 py-2 text-sm text-foreground/50">در حال جستجو...</div>;
+        } else if (!valueInput.trim()) {
+          items = <div className="px-3 py-2 text-sm text-foreground/50">تایپ کنید تا جستجو شود...</div>;
+        } else if (filteredSelectOptions.length === 0) {
+          items = <div className="px-3 py-2 text-sm text-foreground/50">نتیجه‌ای یافت نشد</div>;
+        } else {
+          items = filteredSelectOptions.map((opt, i) => (
             <button
               key={String(opt.value)}
               type="button"
+              id={`filter-val-${i}`}
               className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right transition-colors hover:bg-active-bg/30 ${
                 i === highlightIdx ? 'bg-active-bg/30' : ''
               }`}
@@ -851,10 +1276,9 @@ function FilteredSearchBar({
             >
               <span>{opt.label}</span>
             </button>
-          ))
-        );
+          ));
+        }
       }
-      // For text/number/date: no dropdown items — user types directly in the pill's input
     }
 
     if (!items) return null;
@@ -863,13 +1287,17 @@ function FilteredSearchBar({
       ? createPortal(
           <div
             ref={dropdownRef}
+            tabIndex={-1}
+            role="listbox"
+            aria-label="فیلتر"
             dir="rtl"
-            className="fixed z-[99999] w-max min-w-[220px] max-w-[360px] max-h-[260px] overflow-y-auto rounded-lg border border-[var(--color-border)] bg-white shadow-lg"
+            className="fixed z-[99999] w-max min-w-[220px] max-w-[360px] max-h-[260px] overflow-y-auto rounded-lg border border-[var(--color-border)] bg-white shadow-lg outline-none focus:ring-2 focus:ring-accent/30"
             style={getDropdownPos()}
             onMouseDown={(e) => {
               e.preventDefault();
               clickedInsideDropdownRef.current = true;
             }}
+            onKeyDown={handleKeyboardNav}
           >
             {items}
           </div>,
@@ -888,6 +1316,48 @@ function FilteredSearchBar({
     };
   };
 
+  const getJunctionMenuPos = (): React.CSSProperties => {
+    const el = junctionMenuAnchorRef.current;
+    if (!el) return {};
+    const r = el.getBoundingClientRect();
+    return {
+      top: r.bottom + 4,
+      right: window.innerWidth - r.right,
+      minWidth: Math.max(160, r.width),
+    };
+  };
+
+  const renderJunctionMenu = () => {
+    if (!junctionMenuForId || typeof document === 'undefined') return null;
+    return createPortal(
+      <div
+        ref={junctionMenuRef}
+        role="listbox"
+        aria-label="عملگر منطقی"
+        dir="rtl"
+        className="fixed z-[99999] w-max max-h-[260px] overflow-y-auto rounded-lg border border-[var(--color-border)] bg-white shadow-lg outline-none focus:ring-2 focus:ring-accent/30"
+        style={getJunctionMenuPos()}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          clickedInsideJunctionMenuRef.current = true;
+        }}
+      >
+        {JUNCTION_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            role="option"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-right transition-colors hover:bg-active-bg/30"
+            onClick={() => setTokenJunction(junctionMenuForId, opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>,
+      document.body,
+    );
+  };
+
   const isBuilding = step === 'selectOperator' || step === 'selectValue';
 
   return (
@@ -900,45 +1370,144 @@ function FilteredSearchBar({
         }`}
         onClick={() => inputRef.current?.focus()}
       >
-        {/* Committed tokens */}
-        {tokens.map((token) => (
-          <span
-            key={token.id}
-            className="inline-flex items-center gap-0 rounded-md border border-accent/20 bg-accent/10 text-accent text-xs leading-none overflow-hidden"
-          >
-            <span className="px-1.5 py-1 bg-accent/10 font-medium">{token.label}</span>
-            <span className="px-1 py-1 text-accent/60">{operatorLabelStatic(token, filters)}</span>
-            <span className="px-1.5 py-1">{token.valueLabel}</span>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); removeToken(token.id); }}
-              className="px-1 py-1 hover:bg-accent/20 transition-colors"
-            >
-              <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 3l6 6M9 3l-6 6" />
-              </svg>
-            </button>
-          </span>
+        {/* Committed tokens + logical junctions (left-associative) */}
+        {tokens.map((token, idx) => (
+          <Fragment key={token.id}>
+            {idx > 0 && (
+              <button
+                type="button"
+                title="عملگر منطقی با شرط قبلی"
+                className="shrink-0 rounded border border-dashed border-foreground/25 bg-foreground/[0.04] px-1.5 py-0.5 text-[10px] font-semibold leading-tight text-foreground/70 hover:bg-active-bg/30 hover:border-accent/40"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const btn = e.currentTarget;
+                  junctionMenuAnchorRef.current = btn;
+                  setJunctionMenuForId((cur) => (cur === token.id ? null : token.id));
+                }}
+              >
+                {junctionChipLabel(token.junction)}
+              </button>
+            )}
+            <span className="inline-flex items-center gap-0 rounded-md border border-accent/20 bg-accent/10 text-accent text-xs leading-none overflow-hidden">
+              <span className="px-1.5 py-1 bg-accent/10 font-medium">{token.label}</span>
+              <span className="px-1 py-1 text-accent/60">{operatorLabelStatic(token, filters)}</span>
+              <span className="px-1.5 py-1">{token.valueLabel}</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeToken(token.id);
+                }}
+                className="px-1 py-1 hover:bg-accent/20 transition-colors"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 3l6 6M9 3l-6 6" />
+                </svg>
+              </button>
+            </span>
+          </Fragment>
         ))}
 
         {/* In-progress token being built */}
         {isBuilding && activeFilter && (
-          <span className="inline-flex items-center gap-0 rounded-md border border-accent/40 bg-accent/5 text-accent text-xs leading-none overflow-hidden">
+          <span
+            className={`inline-flex items-center gap-0 rounded-md border border-accent/40 bg-accent/5 text-accent text-xs leading-none ${
+              activeFilter.type === 'date' ? 'overflow-visible' : 'overflow-hidden'
+            }`}
+          >
+            {tokens.length > 0 && (
+              <span
+                className="px-1.5 py-1 font-semibold bg-accent/15 text-accent border-l border-accent/25"
+                title="پیوند با شرط قبلی"
+              >
+                {FILTERBOX_JUNCTION_ROWS.find((r) => r.value === pendingNextJunction)?.label ??
+                  pendingNextJunction}
+              </span>
+            )}
             <span className="px-1.5 py-1 bg-accent/10 font-medium">{activeFilter.label}</span>
             {activeOperator && (
               <span className="px-1 py-1 text-accent/60">{operatorLabel(activeOperator)}</span>
             )}
             {step === 'selectValue' && (
-              <input
-                ref={inputRef}
-                type={activeFilter.type === 'number' ? 'number' : 'text'}
-                value={valueInput}
-                onChange={(e) => setValueInput(e.target.value)}
-                onKeyDown={handleInputKeyDown}
-                placeholder="مقدار..."
-                className="border-none outline-none bg-transparent text-xs text-accent w-[80px] py-1 px-1 placeholder-accent/40"
-                autoFocus
-              />
+              <>
+                {activeFilter.type === 'date' ? (
+                  <div
+                    className="w-[160px] py-0.5 px-1"
+                    onKeyDown={(e) => {
+                      // Let Enter/Esc/Backspace behave like other inputs.
+                      handleKeyboardNav(e);
+                    }}
+                  >
+                    <PersianDatePicker
+                      value={valueInput}
+                      placeholder="تاریخ..."
+                      className="[&_input]:!h-7 [&_input]:!text-xs [&_input]:!px-2 [&_input]:!py-1 [&_input]:!rounded-md [&_input]:!border-accent/30 [&_input]:!bg-transparent [&_input]:focus:!ring-0 [&_input]:focus:!border-accent"
+                      onChange={(v) => {
+                        // Keep it as draft; user can hit Enter to commit (consistent with other free-value inputs).
+                        const day = v.trim().slice(0, 10);
+                        setValueInput(day);
+                      }}
+                    />
+                  </div>
+                ) : activeFilter.type === 'time' ? (
+                  <input
+                    ref={inputRef}
+                    type="time"
+                    value={valueInput}
+                    step={60}
+                    onChange={(e) => setValueInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      handleKeyboardNav(e);
+                    }}
+                    className="border-none outline-none bg-transparent text-xs text-accent py-1 px-1 placeholder-accent/40 w-[100px] text-left"
+                    autoFocus
+                  />
+                ) : (
+                  <input
+                    ref={inputRef}
+                    type={activeFilter.type === 'number' ? 'number' : 'text'}
+                    value={valueInput}
+                    onChange={(e) => setValueInput(toEnglishDigits(e.target.value))}
+                    onKeyDown={(e) => {
+                      // When input type is `number`, browsers may reject non-ASCII digits.
+                      if (activeFilter.type === 'number') {
+                        const normalizedKey = toEnglishDigits(e.key);
+                        const isAsciiDigit = /^[0-9]$/.test(normalizedKey);
+                        if (
+                          !e.ctrlKey &&
+                          !e.metaKey &&
+                          !e.altKey &&
+                          normalizedKey !== e.key &&
+                          isAsciiDigit
+                        ) {
+                          e.preventDefault();
+                          const el = e.currentTarget;
+                          const start = el.selectionStart ?? valueInput.length;
+                          const end = el.selectionEnd ?? valueInput.length;
+                          const nextValue = valueInput.slice(0, start) + normalizedKey + valueInput.slice(end);
+                          setValueInput(nextValue);
+                          requestAnimationFrame(() => {
+                            try {
+                              el.setSelectionRange(start + 1, start + 1);
+                            } catch {
+                              // ignore
+                            }
+                          });
+                          return;
+                        }
+                      }
+
+                      handleKeyboardNav(e);
+                    }}
+                    placeholder={activeFilter.type === 'autocomplete' ? 'جستجو...' : 'مقدار...'}
+                    dir={activeFilter.type === 'number' ? 'ltr' : undefined}
+                    className={`border-none outline-none bg-transparent text-xs text-accent w-[80px] py-1 px-1 placeholder-accent/40 ${
+                      activeFilter.type === 'number' ? 'text-left' : ''
+                    }`}
+                    autoFocus
+                  />
+                )}
+              </>
             )}
             <button
               type="button"
@@ -960,7 +1529,7 @@ function FilteredSearchBar({
             value={freeText}
             onChange={handleInputChange}
             onFocus={handleInputFocus}
-            onKeyDown={handleInputKeyDown}
+            onKeyDown={handleKeyboardNav}
             placeholder={tokens.length > 0 ? '' : placeholder}
             className="flex-1 min-w-[120px] border-none outline-none bg-transparent text-sm text-foreground placeholder-placeholder py-0.5"
           />
@@ -1006,6 +1575,7 @@ function FilteredSearchBar({
       </div>
 
       {renderDropdown()}
+      {renderJunctionMenu()}
     </div>
   );
 }
@@ -1174,7 +1744,6 @@ export function DataTable<T>({
     }));
   };
 
-  const hasSticky = columns.some((c) => c.sticky);
   const hasActions = actions && actions.length > 0;
   const totalVisibleCols = columns.length + (enableSelection ? 1 : 0) + (hasActions ? 1 : 0);
   const skelCols = skeletonColumns ?? totalVisibleCols;
@@ -1276,22 +1845,47 @@ export function DataTable<T>({
     [actions, openEditOnRowDoubleClick],
   );
 
-  const [pinnedColumnKeys, setPinnedColumnKeys] = useState<string[]>(
-    columns.filter((c) => c.sticky).map((c) => c.key),
+  const [pinnedColumnKeys, setPinnedColumnKeys] = useState<string[]>([]);
+  const pinnedColumnsSignature = useMemo(
+    () => columns.map((c) => c.key).slice().sort().join('|'),
+    [columns],
   );
-  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
-  const headerCellRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
+  const [pinStorageKey, setPinStorageKey] = useState<string | null>(null);
+
+  // Restore user pinning from localStorage (route + column set scoped).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const path = window.location.pathname || 'unknown';
+    setPinStorageKey(`touch-crm:datatable:pins:${path}:${pinnedColumnsSignature}`);
+  }, [pinnedColumnsSignature]);
 
   useEffect(() => {
-    const stickyDefaults = columns.filter((c) => c.sticky).map((c) => c.key);
-    setPinnedColumnKeys((prev) => {
-      const next = prev.filter((k) => columns.some((c) => c.key === k));
-      for (const k of stickyDefaults) {
-        if (!next.includes(k)) next.push(k);
-      }
-      return next;
-    });
-  }, [columns]);
+    if (!pinStorageKey) return;
+    try {
+      const raw = window.localStorage.getItem(pinStorageKey);
+      if (!raw) return;
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+      const valid = parsed
+        .filter((k): k is string => typeof k === 'string')
+        .filter((k) => columns.some((c) => c.key === k));
+
+      // De-dupe while preserving order.
+      setPinnedColumnKeys(Array.from(new Set(valid)));
+    } catch {
+      // If parsing fails, just ignore persisted state.
+    }
+  }, [pinStorageKey, columns]);
+
+  // Persist user pinning to localStorage.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!pinStorageKey) return;
+    window.localStorage.setItem(pinStorageKey, JSON.stringify(pinnedColumnKeys));
+  }, [pinStorageKey, pinnedColumnKeys]);
+
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const headerCellRefs = useRef<Record<string, HTMLTableCellElement | null>>({});
 
   useEffect(() => {
     const updateWidths = () => {
@@ -1365,7 +1959,7 @@ export function DataTable<T>({
           <input
             type="text"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => setSearchText(toEnglishDigits(e.target.value))}
             placeholder={searchPlaceholder}
             className="block w-full rounded-lg border border-[var(--color-border)] pr-9 pl-3 py-2 text-sm text-foreground placeholder-placeholder focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent bg-white"
           />

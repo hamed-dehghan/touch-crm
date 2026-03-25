@@ -5,6 +5,7 @@ import {
   getCustomerById,
   updateCustomer,
   deleteCustomer,
+  deleteCustomers,
 } from '../controllers/customer.controller.js';
 import {
   uploadProfileImage as uploadProfileImageHandler,
@@ -56,6 +57,7 @@ router.put(
   requireAnyPermission(['customers:update_own', 'customers:update_all']),
   updateCustomer
 );
+router.delete('/', authenticate, requirePermission('customers:delete'), deleteCustomers);
 
 router.delete(
   '/:id',

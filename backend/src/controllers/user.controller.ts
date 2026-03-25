@@ -297,3 +297,43 @@ export const deleteUser = async (
     next(error);
   }
 };
+
+export const deleteUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : null;
+    if (!rawIds || rawIds.length === 0) {
+      throw new ValidationError('ids must be a non-empty array');
+    }
+
+    const ids = [...new Set(rawIds.map((id: unknown) => Number(id)).filter((id: number) => Number.isInteger(id) && id > 0))];
+    if (ids.length !== rawIds.length) {
+      throw new ValidationError('ids must contain valid unique positive integers');
+    }
+
+    if (req.user && ids.includes(req.user.userId)) {
+      throw new ValidationError('Cannot delete your own account');
+    }
+
+    const users = await User.findAll({
+      where: { id: ids },
+      attributes: ['id'],
+    });
+    if (users.length !== ids.length) {
+      throw new ValidationError('One or more users were not found');
+    }
+
+    await User.destroy({ where: { id: ids } });
+
+    res.json({
+      success: true,
+      data: { deletedCount: ids.length },
+      message: 'Users deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};

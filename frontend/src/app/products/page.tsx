@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Product } from '@/types/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { useAppDialogs } from '@/components/ui/AppDialogs';
 import {
   DataTable,
@@ -15,14 +15,11 @@ import {
   type FilterToken,
 } from '@/components/ui/DataTable';
 import { formatGregorianToJalali } from '@/utils/date';
+import { routes } from '@/lib/routes';
 
 export default function ProductsPage() {
+  const router = useRouter();
   const dialogs = useAppDialogs();
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState({ productName: '', price: '', taxRate: '' });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchProducts = useCallback(
@@ -41,6 +38,7 @@ export default function ProductsPage() {
                 key: f.key,
                 operator: f.operator,
                 value: f.value,
+                ...(f.junction ? { junction: f.junction } : {}),
               })),
             )
           : undefined;
@@ -68,49 +66,6 @@ export default function ProductsPage() {
     },
     [refreshKey], // eslint-disable-line react-hooks/exhaustive-deps
   );
-
-  const resetForm = () => {
-    setForm({ productName: '', price: '', taxRate: '' });
-    setEditingId(null);
-    setShowForm(false);
-    setError('');
-  };
-
-  const startEdit = (p: Product) => {
-    setForm({
-      productName: p.productName,
-      price: String(p.price),
-      taxRate: String(p.taxRate),
-    });
-    setEditingId(p.id);
-    setShowForm(true);
-    setError('');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (!form.productName.trim() || !form.price) {
-      setError('نام محصول و قیمت الزامی است.');
-      return;
-    }
-    setSaving(true);
-    const body = {
-      productName: form.productName.trim(),
-      price: Number(form.price),
-      taxRate: Number(form.taxRate) || 0,
-    };
-    const res = editingId
-      ? await api.products.update(editingId, body)
-      : await api.products.create(body);
-    setSaving(false);
-    if (!res.success) {
-      setError(res.error?.message ?? 'خطا');
-      return;
-    }
-    resetForm();
-    setRefreshKey((k) => k + 1);
-  };
 
   const handleDelete = async (p: Product) => {
     const ok = await dialogs.confirm('آیا از حذف این محصول مطمئنید؟');
@@ -176,7 +131,7 @@ export default function ProductsPage() {
   const actions: DataTableAction<Product>[] = [
     {
       label: 'ویرایش',
-      onClick: startEdit,
+      onClick: (row) => router.push(routes.productEdit(row.id)),
       variant: 'primary',
       icon: <PencilIcon className="w-3.5 h-3.5" />,
       triggerOnRowDoubleClick: true,
@@ -209,70 +164,8 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">محصولات</h1>
-        <Button
-          onClick={() => {
-            resetForm();
-            setShowForm(true);
-          }}
-        >
-          افزودن محصول
-        </Button>
+        <Button onClick={() => router.push(routes.productNew)}>افزودن محصول</Button>
       </div>
-
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {editingId ? 'ویرایش محصول' : 'محصول جدید'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                label="نام محصول *"
-                value={form.productName}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, productName: e.target.value }))
-                }
-                required
-              />
-              <Input
-                label="قیمت (ریال) *"
-                type="number"
-                min={0}
-                value={form.price}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, price: e.target.value }))
-                }
-                required
-              />
-              <Input
-                label="نرخ مالیات (%)"
-                type="number"
-                min={0}
-                max={100}
-                value={form.taxRate}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, taxRate: e.target.value }))
-                }
-              />
-              {error && <p className="text-sm text-red-600">{error}</p>}
-              <div className="flex gap-2">
-                <Button type="submit" disabled={saving}>
-                  {saving
-                    ? 'در حال ذخیره...'
-                    : editingId
-                      ? 'بروزرسانی'
-                      : 'ثبت'}
-                </Button>
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  انصراف
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
 
       <Card>
         <CardHeader>

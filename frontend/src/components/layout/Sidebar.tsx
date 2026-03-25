@@ -4,23 +4,24 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSidebarStore } from '@/store/sidebarStore';
+import { routes } from '@/lib/routes';
 
 type IconName = 'home' | 'users' | 'cart' | 'box' | 'tag' | 'megaphone' | 'receipt' | 'levels' | 'tasks' | 'projects' | 'worklogs' | 'settings' | 'shield';
 
 const navItems: { href: string; label: string; icon: IconName }[] = [
-  { href: '/', label: 'نگاه کلی', icon: 'home' },
-  { href: '/customers', label: 'مشتریان', icon: 'users' },
-  { href: '/orders', label: 'سفارشات', icon: 'cart' },
-  { href: '/products', label: 'محصولات', icon: 'box' },
-  { href: '/transactions', label: 'تراکنش‌ها', icon: 'receipt' },
-  { href: '/promotions', label: 'تخفیف‌ها', icon: 'tag' },
-  { href: '/campaigns', label: 'کمپین‌ها', icon: 'megaphone' },
-  { href: '/projects', label: 'پروژه‌ها', icon: 'projects' },
-  { href: '/tasks', label: 'وظایف', icon: 'tasks' },
-  { href: '/worklogs', label: 'گزارش کار', icon: 'worklogs' },
-  { href: '/settings/levels', label: 'سطوح وفاداری', icon: 'levels' },
-  { href: '/settings/users', label: 'کاربران', icon: 'settings' },
-  { href: '/settings/roles', label: 'نقش‌ها', icon: 'shield' },
+  { href: routes.home, label: 'نگاه کلی', icon: 'home' },
+  { href: routes.customers, label: 'مشتریان', icon: 'users' },
+  { href: routes.orders, label: 'سفارشات', icon: 'cart' },
+  { href: routes.products, label: 'محصولات', icon: 'box' },
+  { href: routes.transactions, label: 'تراکنش‌ها', icon: 'receipt' },
+  { href: routes.promotions, label: 'تخفیف‌ها', icon: 'tag' },
+  { href: routes.campaigns, label: 'کمپین‌ها', icon: 'megaphone' },
+  { href: routes.projects, label: 'پروژه‌ها', icon: 'projects' },
+  { href: routes.tasks, label: 'وظایف', icon: 'tasks' },
+  { href: routes.worklogs, label: 'گزارش کار', icon: 'worklogs' },
+  { href: routes.settingsLevels, label: 'سطوح وفاداری', icon: 'levels' },
+  { href: routes.settingsUsers, label: 'کاربران', icon: 'settings' },
+  { href: routes.settingsRoles, label: 'نقش‌ها', icon: 'shield' },
 ];
 
 function NavIcon({
@@ -148,7 +149,7 @@ function SidebarContent({
         <ul className="space-y-0.5">
           {navItems.map((item) => {
             const isActive =
-              pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+              pathname === item.href || (item.href !== routes.home && pathname.startsWith(item.href));
             const linkClass = `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               isActive ? 'bg-active-bg text-primary' : 'text-foreground hover:bg-active-bg/50'
             } ${isCollapsed ? 'justify-center' : ''}`;

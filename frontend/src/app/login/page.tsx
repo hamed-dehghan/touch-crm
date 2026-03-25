@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Logo } from '@/components/Logo';
+import { formFieldStackClass } from '@/lib/formLayout';
 
 function EnvelopeIcon({ className }: { className?: string }) {
   return (
@@ -82,7 +83,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <h2 className="text-lg font-bold text-foreground mb-6">ورود به حساب کاربری</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className={formFieldStackClass}>
           <div className="relative">
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-placeholder w-5 h-5 pointer-events-none">
               <EnvelopeIcon className="w-5 h-5" />

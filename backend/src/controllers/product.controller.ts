@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { Op } from 'sequelize';
 import Product from '../models/Product.js';
-import { NotFoundError } from '../utils/errors.js';
+import OrderItem from '../models/OrderItem.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 import { createProductSchema, updateProductSchema } from '../validations/product.validation.js';
 import { getBasicSearchString, orILike, parsePagination } from '../utils/search.utils.js';
 import {
@@ -305,11 +306,59 @@ export const deleteProduct = async (
       throw new NotFoundError('Product');
     }
 
+    const usageCount = await OrderItem.count({ where: { productId: product.id } });
+    if (usageCount > 0) {
+      throw new ValidationError('Cannot delete product because it is used in existing orders');
+    }
+
     await product.destroy();
 
     res.json({
       success: true,
       message: 'Product deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteProducts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : null;
+    if (!rawIds || rawIds.length === 0) {
+      throw new ValidationError('ids must be a non-empty array');
+    }
+
+    const ids = [...new Set(rawIds.map((id: unknown) => Number(id)).filter((id: number) => Number.isInteger(id) && id > 0))];
+    if (ids.length !== rawIds.length) {
+      throw new ValidationError('ids must contain valid unique positive integers');
+    }
+
+    const foundCount = await Product.count({ where: { id: { [Op.in]: ids } } });
+    if (foundCount !== ids.length) {
+      throw new ValidationError('One or more products were not found');
+    }
+
+    const usedProductIds = await OrderItem.findAll({
+      where: { productId: { [Op.in]: ids } },
+      attributes: ['productId'],
+      group: ['productId'],
+      raw: true,
+    });
+    if (usedProductIds.length > 0) {
+      throw new ValidationError('Cannot delete selected products because some are used in existing orders');
+    }
+
+    await Product.destroy({ where: { id: { [Op.in]: ids } } });
+
+    res.json({
+      success: true,
+      data: { deletedCount: ids.length },
+      message: 'Products deleted successfully',
     });
   } catch (error) {
     next(error);

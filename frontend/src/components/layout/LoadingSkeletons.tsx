@@ -48,27 +48,33 @@ export function TableLoadingSkeleton({ columns, rows = 8 }: { columns: number; r
 
 export function TasksBoardLoadingSkeleton({ cardsPerColumn = 2 }: { cardsPerColumn?: number }) {
   return (
-    <div className="grid gap-3 lg:grid-cols-4">
+    <div className="flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-4 lg:overflow-visible">
       {Array.from({ length: 4 }).map((_, col) => (
-        <div key={col} className="rounded-xl border border-slate-200 bg-slate-50 p-3 min-h-[320px]">
-          <div className="mb-3 flex items-center justify-between">
-            <Skeleton className="h-5 w-24" />
-            <Skeleton className="h-4 w-16" />
+        <div
+          key={col}
+          className="min-h-[22rem] min-w-[17.5rem] flex-1 rounded-lg bg-[#F4F5F7] p-2 lg:min-w-0"
+        >
+          <div className="mb-2 flex items-center justify-between px-1">
+            <Skeleton className="h-4 w-28 rounded bg-[#EBECF0]" />
+            <Skeleton className="h-5 w-8 rounded-full bg-[#DFE1E6]" />
           </div>
           <div className="space-y-2">
             {Array.from({ length: cardsPerColumn }).map((__, i) => (
-              <div key={i} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+              <div key={i} className="rounded border border-[#DFE1E6] border-s-4 border-s-slate-300 bg-white px-3 py-2.5 shadow-sm">
                 <div className="flex items-start justify-between gap-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-10" />
+                  <Skeleton className="h-3 w-16 rounded bg-[#EBECF0]" />
+                  <Skeleton className="h-5 w-20 rounded bg-[#FAFBFC]" />
                 </div>
-                <Skeleton className="mt-2 h-3 w-full" />
-                <div className="mt-2 space-y-1">
-                  <Skeleton className="h-3 w-5/6" />
-                  <Skeleton className="h-3 w-4/6" />
-                  <Skeleton className="h-3 w-3/6" />
+                <Skeleton className="mt-2 h-4 w-full rounded bg-[#EBECF0]" />
+                <Skeleton className="mt-1.5 h-3 w-4/5 rounded bg-[#F4F5F7]" />
+                <div className="mt-2 flex gap-1">
+                  <Skeleton className="h-4 w-14 rounded-sm bg-[#DEEBFF]" />
+                  <Skeleton className="h-4 w-16 rounded-sm bg-[#EAEAEA]" />
                 </div>
-                <Skeleton className="mt-3 h-7 w-full" />
+                <div className="mt-2.5 flex justify-between border-t border-[#F0F1F2] pt-2">
+                  <Skeleton className="h-7 w-7 rounded-full bg-[#DFE1E6]" />
+                  <Skeleton className="h-7 w-14 rounded bg-transparent" />
+                </div>
               </div>
             ))}
           </div>

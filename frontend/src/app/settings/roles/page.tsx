@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Role, Permission } from '@/types/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useAppDialogs } from '@/components/ui/AppDialogs';
 import {
@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/DataTable';
 import { filterRowsBySearch, paginateSlice, sortRows } from '@/lib/clientListQuery';
 import { filterRowsByTokens, matchNumberCell, matchTextCell } from '@/lib/filterTokens';
+import { routes } from '@/lib/routes';
 
 const roleFilterDefinitions: DataTableFilter[] = [
   { key: 'roleName', label: 'نام نقش', type: 'text' },
@@ -28,13 +29,10 @@ const roleFilterDefinitions: DataTableFilter[] = [
 type RoleRow = Role & { permissionCount: number; permissions?: Permission[] };
 
 export default function RolesPage() {
+  const router = useRouter();
   const dialogs = useAppDialogs();
   const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [form, setForm] = useState({ roleName: '', description: '' });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
   const [assignRoleId, setAssignRoleId] = useState<number | null>(null);
   const [assignRoleName, setAssignRoleName] = useState('');
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([]);
@@ -78,40 +76,6 @@ export default function RolesPage() {
     },
     [savedTick],
   );
-
-  const resetForm = () => {
-    setForm({ roleName: '', description: '' });
-    setEditingId(null);
-    setShowForm(false);
-    setError('');
-  };
-
-  const startEdit = (r: RoleRow) => {
-    setForm({ roleName: r.roleName, description: r.description ?? '' });
-    setEditingId(r.id);
-    setShowForm(true);
-    setError('');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (!form.roleName.trim()) {
-      setError('نام نقش الزامی است.');
-      return;
-    }
-    setSaving(true);
-    const res = editingId
-      ? await api.roles.update(editingId, { roleName: form.roleName.trim(), description: form.description || undefined })
-      : await api.roles.create({ roleName: form.roleName.trim(), description: form.description || undefined });
-    setSaving(false);
-    if (!res.success) {
-      setError(res.error?.message ?? 'خطا');
-      return;
-    }
-    resetForm();
-    setSavedTick((k) => k + 1);
-  };
 
   const handleDelete = async (r: RoleRow) => {
     const ok = await dialogs.confirm('آیا از حذف این نقش مطمئنید؟');
@@ -194,7 +158,7 @@ export default function RolesPage() {
     {
       label: 'ویرایش',
       variant: 'primary',
-      onClick: startEdit,
+      onClick: (row) => router.push(routes.settingsRoleEdit(row.id)),
       triggerOnRowDoubleClick: true,
     },
     {
@@ -221,38 +185,8 @@ export default function RolesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">مدیریت نقش‌ها و مجوزها</h1>
-        <Button
-          onClick={() => {
-            resetForm();
-            setShowForm(true);
-          }}
-        >
-          نقش جدید
-        </Button>
+        <Button onClick={() => router.push(routes.settingsRoleNew)}>نقش جدید</Button>
       </div>
-
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{editingId ? 'ویرایش نقش' : 'نقش جدید'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input label="نام نقش *" value={form.roleName} onChange={(e) => setForm((f) => ({ ...f, roleName: e.target.value }))} required />
-              <Input label="توضیحات" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
-              {error && <p className="text-sm text-red-600">{error}</p>}
-              <div className="flex gap-2">
-                <Button type="submit" disabled={saving}>
-                  {saving ? 'در حال ذخیره...' : editingId ? 'بروزرسانی' : 'ثبت'}
-                </Button>
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  انصراف
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
 
       {assignRoleId !== null && (
         <Card>

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { use, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Customer, CustomerRfmResponse, Transaction, WorkLog } from '@/types/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/Badge';
 import { formatGregorianToJalali } from '@/utils/date';
 import { useAppDialogs } from '@/components/ui/AppDialogs';
 import { CustomerDetailLoadingSkeleton } from '@/components/layout/LoadingSkeletons';
-import { CustomerFormModal } from '@/components/customers/CustomerFormModal';
+import { routes } from '@/lib/routes';
 
 type Tab = 'profile' | 'contact' | 'marketing' | 'psychology' | 'documents' | 'transactions' | 'worklogs';
 
@@ -59,11 +59,11 @@ const platformLabel = (p: string) => {
   }
 };
 
-export default function CustomerDetailPage() {
+export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const dialogs = useAppDialogs();
-  const params = useParams();
   const router = useRouter();
-  const id = Number(params.id);
+  const { id: idParam } = use(params);
+  const id = Number(idParam);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [rfm, setRfm] = useState<CustomerRfmResponse | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -71,7 +71,6 @@ export default function CustomerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('profile');
   const [deleting, setDeleting] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const loadData = async () => {
     if (Number.isNaN(id)) return;
@@ -136,7 +135,7 @@ export default function CustomerDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setEditModalOpen(true)}>ویرایش</Button>
+          <Button variant="outline" onClick={() => router.push(routes.customerEdit(id))}>ویرایش</Button>
           <Button variant="danger" onClick={handleDelete} disabled={deleting}>{deleting ? 'در حال حذف...' : 'حذف'}</Button>
           <Button variant="ghost" onClick={() => router.back()}>بازگشت</Button>
         </div>
@@ -205,8 +204,9 @@ export default function CustomerDetailPage() {
                 <div className="space-y-2 text-sm">
                   {customer.phones.map((p, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="font-mono">{p.phoneNumber}</span>
+                      {p.label && <span className="text-slate-500">({p.label})</span>}
                       <Badge variant="default">{p.phoneType === 'MOBILE' ? 'موبایل' : 'ثابت'}</Badge>
+                      <span className="font-mono">{p.phoneNumber}</span>
                       {p.extension && <span className="text-slate-400">داخلی: {p.extension}</span>}
                       {p.isDefault && <Badge variant="success">پیش‌فرض</Badge>}
                     </div>
@@ -419,13 +419,6 @@ export default function CustomerDetailPage() {
         </Card>
       )}
 
-      {/* Edit Modal */}
-      <CustomerFormModal
-        open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        customerId={id}
-        onSaved={loadData}
-      />
     </div>
   );
 }

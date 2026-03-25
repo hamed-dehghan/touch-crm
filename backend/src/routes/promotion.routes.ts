@@ -5,6 +5,7 @@ import {
   getPromotionById,
   updatePromotion,
   deletePromotion,
+  deletePromotions,
   assignPromotionToCustomer,
 } from '../controllers/promotion.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
@@ -21,6 +22,7 @@ const router: Router = Router();
 
 router.post('/', authenticate, requirePermission('promotions:create'), createPromotion);
 router.get('/', authenticate, requirePermission('promotions:read'), getPromotions);
+router.delete('/', authenticate, requirePermission('promotions:delete'), deletePromotions);
 router.get('/:id', authenticate, requirePermission('promotions:read'), getPromotionById);
 router.put('/:id', authenticate, requirePermission('promotions:update'), updatePromotion);
 router.delete('/:id', authenticate, requirePermission('promotions:delete'), deletePromotion);

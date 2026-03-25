@@ -16,7 +16,9 @@ import {
 } from '@/components/ui/DataTable';
 import { formatGregorianToJalali } from '@/utils/date';
 import { filterRowsBySearch, paginateSlice, sortRows } from '@/lib/clientListQuery';
+import { loadAllOrders } from '@/lib/loadAllPaged';
 import { filterRowsByTokens, matchDateCell, matchNumberCell, matchTextCell } from '@/lib/filterTokens';
+import { routes } from '@/lib/routes';
 
 const orderFilterDefinitions: DataTableFilter[] = [
   { key: 'id', label: 'شناسه سفارش', type: 'number' },
@@ -40,14 +42,8 @@ export default function OrdersPage() {
       sortBy?: string;
       sortOrder?: 'asc' | 'desc';
     }) => {
-      const res = await api.orders.list();
-      if (!res.success || !res.data) {
-        return {
-          rows: [],
-          pagination: { page: 1, limit: params.limit, total: 0, totalPages: 0 },
-        };
-      }
-      let rows = [...res.data.orders];
+      const rowsAll = await loadAllOrders();
+      let rows = [...rowsAll];
       rows = filterRowsBySearch(rows, params.search, (o) => {
         const name = o.customer
           ? [o.customer.firstName, o.customer.lastName].filter(Boolean).join(' ')
@@ -148,7 +144,7 @@ export default function OrdersPage() {
     {
       label: 'مشاهده',
       variant: 'primary',
-      onClick: (row) => router.push(`/orders/${row.id}`),
+      onClick: (row) => router.push(routes.order(row.id)),
       triggerOnRowDoubleClick: true,
     },
   ];
@@ -157,7 +153,7 @@ export default function OrdersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">سفارشات</h1>
-        <Link href="/orders/new">
+        <Link href={routes.orderNew}>
           <Button>ثبت سفارش جدید</Button>
         </Link>
       </div>

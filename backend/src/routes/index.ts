@@ -12,6 +12,7 @@ import taskRoutes from './task.routes.js';
 import worklogRoutes from './worklog.routes.js';
 import transactionRoutes from './transaction.routes.js';
 import customerLevelRoutes from './customerLevel.routes.js';
+import locationRoutes from './location.routes.js';
 
 const router: Router = Router();
 
@@ -28,5 +29,6 @@ router.use('/tasks', taskRoutes);
 router.use('/worklogs', worklogRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/customer-levels', customerLevelRoutes);
+router.use('/locations', locationRoutes);
 
 export default router;

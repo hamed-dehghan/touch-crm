@@ -5,6 +5,7 @@ import {
   getProductById,
   updateProduct,
   deleteProduct,
+  deleteProducts,
 } from '../controllers/product.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 
@@ -19,6 +20,7 @@ const router: Router = Router();
 
 router.post('/', authenticate, createProduct);
 router.get('/', authenticate, getProducts);
+router.delete('/', authenticate, deleteProducts);
 router.get('/:id', authenticate, getProductById);
 router.put('/:id', authenticate, updateProduct);
 router.delete('/:id', authenticate, deleteProduct);

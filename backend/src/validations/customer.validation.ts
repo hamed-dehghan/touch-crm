@@ -25,7 +25,15 @@ const addressSchema = yup.object().shape({
   province: yup.string().max(100),
   city: yup.string().max(100),
   address: yup.string(),
-  postalCode: yup.string().max(10),
+  postalCode: yup
+    .string()
+    .test('postalCodePattern', 'کد پستی باید شامل دقیقاً ۱۰ رقم باشد', (v) => {
+      if (v == null) return true;
+      const s = String(v).trim();
+      if (!s) return true; // keep optional: empty is allowed
+      // Accept ASCII digits + Arabic-Indic/Persian-Indic digits.
+      return /^[0-9\u0660-\u0669\u06F0-\u06F9]{10}$/.test(s);
+    }),
   isDefault: yup.boolean(),
 });
 

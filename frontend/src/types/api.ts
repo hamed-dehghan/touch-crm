@@ -308,6 +308,11 @@ export interface CustomerRfmResponse {
   customerLevel: CustomerLevel | null;
 }
 
+export interface IranLocationNode {
+  province: string;
+  cities: string[];
+}
+
 export interface Pagination {
   page: number;
   limit: number;
@@ -319,5 +324,10 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   message?: string;
-  error?: { message: string; statusCode: number };
+  error?: {
+    message: string;
+    statusCode: number;
+    code?: string;
+    details?: Array<string | { field?: string; message: string }> | Record<string, unknown>;
+  };
 }

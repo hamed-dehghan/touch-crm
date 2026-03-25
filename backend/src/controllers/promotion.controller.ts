@@ -329,6 +329,39 @@ export const deletePromotion = async (
   }
 };
 
+export const deletePromotions = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : null;
+    if (!rawIds || rawIds.length === 0) {
+      throw new ValidationError('ids must be a non-empty array');
+    }
+
+    const ids = [...new Set(rawIds.map((id: unknown) => Number(id)).filter((id: number) => Number.isInteger(id) && id > 0))];
+    if (ids.length !== rawIds.length) {
+      throw new ValidationError('ids must contain valid unique positive integers');
+    }
+
+    const foundCount = await Promotion.count({ where: { id: { [Op.in]: ids } } });
+    if (foundCount !== ids.length) {
+      throw new ValidationError('One or more promotions were not found');
+    }
+
+    await Promotion.destroy({ where: { id: { [Op.in]: ids } } });
+
+    res.json({
+      success: true,
+      data: { deletedCount: ids.length },
+      message: 'Promotions deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * @swagger
  * /api/v1/promotions/{id}/assign:
